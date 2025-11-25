@@ -1,0 +1,38 @@
+torch
+torchvision
+torchaudio
+transformers[ja, sklearn, tiktoken, sentencepiece, num2words, video, mistral-common]>=4.55.4
+huggingface-hub<1.0.0
+x_transformers>=2.7.0
+sentence_transformers>=5.1.0
+datasets[audio]>=3.6.0
+peft
+llama-cpp-python
+groq
+together
+fireworks-ai
+novita-sandbox
+cohere
+openai>=1.102.2
+anthropic>=0.64.0
+google-genai>=1.32.0
+mistralai
+xai-sdk
+perplexityai
+ollama
+lmstudio
+unstructured[all-docs]>=0.18.11
+langchain[community, anthropic, openai, google-genai, ollama, huggingface, perplexity, xai, mistralai]>=1.0.0
+langchain-classic
+langchain-chroma>=0.1.2
+langchain-mcp-adapters
+mcp[cli]
+fastmcp
+gguf
+gptqmodel>4.0.0
+openai-harmony
+
+mlx; platform_system == 'Darwin'
+mlx-lm; platform_system == 'Darwin'
+mlx-vlm @ git+https://github.com/bean980310/mlx-vlm.git@d18699db6e58f4c21e989d141be5daa98ba05ae8 ; platform_system == 'Darwin'
+mlx_embeddings; platform_system == 'Darwin'
