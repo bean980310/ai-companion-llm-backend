@@ -23,8 +23,11 @@ class OllamaIntegrator(BaseAPIClientWrapper):
         else:
             self.max_tokens = 4096
 
-        if self.use_langchain:
-            self.load_model()
+        self.server_url = str(kwargs.get("server_url", "http://localhost:11434"))
+        # self.client = ollama.Client(host=self.server_url)
+
+        if self.use_langchain: self.load_model()
+        else: self.client = ollama.Client(host=self.server_url)
 
     def load_model(self):
         self.langchain_integrator = LangchainIntegrator(
@@ -39,7 +42,7 @@ class OllamaIntegrator(BaseAPIClientWrapper):
             verbose=True,
         )
 
-    def generate_answer(self, history, **kwargs):
+    def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
         if self.use_langchain:
             return self.langchain_integrator.generate_answer(history)
 

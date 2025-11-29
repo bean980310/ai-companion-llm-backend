@@ -47,7 +47,7 @@ class TransformersCausalModelHandler(BaseCausalModelHandler):
 
         if self.use_langchain:
             self.langchain_integrator = LangchainIntegrator(
-                provider="transformers",
+                provider=("self-provided", "transformers"),
                 model=self.model,
                 tokenizer=self.tokenizer,
                 max_tokens=self.max_new_tokens,

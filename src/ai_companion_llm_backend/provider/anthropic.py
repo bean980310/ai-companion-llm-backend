@@ -1,16 +1,23 @@
 import traceback
+from typing import Any
+
+from PIL import Image, ImageFile
+
 import anthropic
+from anthropic import Anthropic
 
 from ..logging import logger
 from ..base_handlers import BaseAPIClientWrapper
 from ..langchain_integrator import LangchainIntegrator
 
 class AnthropicClientWrapper(BaseAPIClientWrapper):
-    def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, **kwargs):
-        super().__init__(selected_model, api_key, use_langchain, **kwargs)
-        
-        if self.use_langchain:
-            self.load_model()
+    def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):
+        super().__init__(selected_model, api_key, use_langchain, image_input, **kwargs)
+
+        self.system_prompt: str = None
+
+        if self.use_langchain: self.load_model()
+        else: self.client = Anthropic(api_key=self.api_key)
 
     def load_model(self):
         self.langchain_integrator = LangchainIntegrator(
@@ -27,66 +34,83 @@ class AnthropicClientWrapper(BaseAPIClientWrapper):
             image_input=self.image_input
         )
 
-    def generate_answer(self, history, **kwargs):
+    def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
         if self.use_langchain:
             return self.langchain_integrator.generate_answer(history)
         else:
-            client = anthropic.Client(api_key=self.api_key)
+            # client = anthropic.Client(api_key=self.api_key)
 
             # Anthropic 메시지 형식으로 변환
-            messages = []
-            for msg in history[:-1]:
-                if msg["role"] == "system":
-                    system = msg["content"]
-                    continue  # Claude API는 시스템 메시지를 별도로 처리하지 않음
-                messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"]
-                })
+            self.system_prompt = next((msg['content'] for msg in history[:1] if msg['role'] == 'system'), None)
+            
+            # if self.system_prompt is not None:
+            #     messages = [{"role": msg['role'], "content": msg['content']} for msg in history[1:-1]]
+            # else:
+            #     messages = [{"role": msg['role'], "content": msg['content']} for msg in history[:-1]]
+
+            # messages = [{"role": msg['role'], "content": msg['content']} for msg in history[(1 if self.system_prompt else 0):-1]]
+            messages = [{"role": msg['role'], "content": msg['content']} for msg in history[bool(self.system_prompt):-1]]
+
+
+            # messages = []
+            # for msg in history[:-1]:
+            #     if msg["role"] == "system":
+            #         self.system = msg["content"]
+            #         # continue  # Claude API는 시스템 메시지를 별도로 처리하지 않음
+            #     else:
+            #         messages.append({
+            #         "role": msg["role"],
+            #         "content": msg["content"]
+            #     })
 
             if self.image_input is not None:
-                image = self.encode_image(self.image_input)
+                _, mime_type = self.encode_image(self.image_input)
+                with open(self.image_input, 'rb') as f:
+                    image = self.client.beta.files.upload(file=(self.image_input.split("/")[-1], f, mime_type))
                 new_message = {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": history[-1]["content"]["text"]},
-                        {"type": "image", "source": { "type": "base64", "media_type": "image/jpeg", "data": image}}
+                        {"type": "image", "source": { "type": "file", "file_id": image.id}},
+                        {"type": "text", "text": history[-1]["content"]["text"]}
                     ],
                 }
                 messages.append(new_message)
             else:
-                messages.append([{"role": "user", "content": history[-1]["content"]}])
+                messages.append({"role": "user", "content": history[-1]["content"]})
                     
             logger.info(f"[*] Anthropic API 요청: {messages}")
 
             if self.enable_streaming is True:
                 answer = ""
-                with client.messages.stream(
+                with self.client.beta.messages.stream(
                     model=self.model,
-                    system=system,
+                    system=self.system_prompt,
                     messages=messages,
                     temperature=self.temperature,
                     top_k=self.top_k,
-                    # top_p=self.top_p,
+                    top_p=self.top_p if self.enable_thinking is False else None,
                     # frequency_penalty=repetition_penalty,
                     max_tokens=self.max_tokens,
-                    thinking={"type": "enabled", "budget_tokens": 10000} if self.enable_thinking else {"type": "disabled"}
+                    thinking={"type": "enabled", "budget_tokens": 10000} if self.enable_thinking else {"type": "disabled"},
+                    betas=["files-api-2025-04-14"]
                 ) as stream:
                     for text in stream.text_stream:
                         print(text, end="", flush=True)
-                        answer.join(text)
+                        answer += text
 
             else:
-                response = client.messages.create(
+                response = self.client.beta.messages.create(
                     model=self.model,
-                    system=system,
+                    system=self.system_prompt,
                     messages=messages,
                     temperature=self.temperature,
                     top_k=self.top_k,
-                    top_p=self.top_p,
+                    top_p=self.top_p if self.enable_thinking is False else None,
                     # frequency_penalty=repetition_penalty,
                     max_tokens=self.max_tokens,
+                    thinking={"type": "enabled", "budget_tokens": 10000} if self.enable_thinking else {"type": "disabled"},
+                    betas=["files-api-2025-04-14"]
                 )
                 answer = response.content[0].text
 
-            return answer
+            return answer.strip()

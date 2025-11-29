@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, Union
 import os
 import platform
 import warnings
@@ -32,8 +32,9 @@ except ImportError:
         pass
 
 class BaseModel(ABC):
-    def __init__(self, use_langchain: bool = True, **kwargs):
+    def __init__(self, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):
         self.use_langchain = use_langchain
+        self.image_input = image_input
         self.enable_streaming = bool(kwargs.get("enable_streaming", False))
 
         self.max_tokens = int(kwargs.get("max_tokens", 4096))
@@ -63,13 +64,12 @@ class BaseModel(ABC):
 
 class BaseModelHandler(BaseModel):
     def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):
-        super().__init__(use_langchain, **kwargs)
+        super().__init__(use_langchain, image_input, **kwargs)
         self.model_id: str = model_id
         self.lora_model_id: str | None = lora_model_id
         self.config: AutoConfig | PretrainedConfig | GenerationConfig | Any | None = None
         self.local_model_path: str = os.path.join("./models/llm", model_id)
         self.local_lora_model_path: str | None = os.path.join("./models/llm/loras", lora_model_id) if lora_model_id else None
-        self.image_input = image_input
 
         self.processor: AutoProcessor | ProcessorMixin | Any | None = None
         self.tokenizer: AutoTokenizer | PreTrainedTokenizer | PreTrainedTokenizerFast | PreTrainedTokenizerBase | TokenizerWrapper | type[SPMStreamingDetokenizer] | partial[SPMStreamingDetokenizer] | type[BPEStreamingDetokenizer] | type[NaiveStreamingDetokenizer] | Any | None = None
@@ -93,7 +93,7 @@ class BaseModelHandler(BaseModel):
 
 class BaseCausalModelHandler(BaseModelHandler):
     def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = True, **kwargs):
-        super().__init__(model_id, lora_model_id, use_langchain, **kwargs)
+        super().__init__(model_id, lora_model_id, use_langchain, None, **kwargs)
         
     @abstractmethod
     def load_model(self):
@@ -110,6 +110,7 @@ class BaseCausalModelHandler(BaseModelHandler):
     @abstractmethod
     def load_template(self, messages):
         pass
+
 class BaseVisionModelHandler(BaseModelHandler):
     def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):
         super().__init__(model_id, lora_model_id, use_langchain, image_input, **kwargs)
@@ -129,13 +130,12 @@ class BaseVisionModelHandler(BaseModelHandler):
     @abstractmethod
     def load_template(self, messages):
         pass
+
 class BaseAPIClientWrapper(BaseModel):
     def __init__(self, selected_model: str, api_key: str | None = None , use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, **kwargs):
-        super().__init__(use_langchain, **kwargs)
+        super().__init__(use_langchain, image_input, **kwargs)
         self.model = selected_model
         self.api_key = api_key
-        self.image_input = image_input
-
 
     @abstractmethod
     def load_model(self):
@@ -144,8 +144,19 @@ class BaseAPIClientWrapper(BaseModel):
     @abstractmethod
     def generate_answer(self, history, **kwargs):
         pass
-
+    
     @staticmethod
-    def encode_image(image_path):
+    def encode_image(image_path: str):
         with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode("utf-8")
+            if image_path.rsplit('.')[-1] == "jpg" or "jpeg":
+                data_mime="image/jpeg"
+            elif image_path.rsplit('.')[-1] == "png":
+                data_mime="image/png"
+            elif image_path.rsplit('.')[-1] == "webp":
+                data_mime="image/webp"
+            elif image_path.rsplit('.')[-1] == "gif":
+                data_mime="image/gif"
+
+            image = base64.b64encode(image_file.read()).decode("utf-8")
+
+        return image, data_mime

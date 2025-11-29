@@ -58,7 +58,6 @@ from langchain_community.document_loaders import UnstructuredFileLoader
 from langchain_community.llms.llamacpp import LlamaCpp
 from langchain_community.chat_models.llamacpp import ChatLlamaCpp
 from langchain_huggingface import HuggingFacePipeline, HuggingFaceEndpoint, ChatHuggingFace
-from langchain_huggingface_hijack.chat_models import ChatHuggingFaceEnhanced
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -151,14 +150,14 @@ class LangchainIntegrator:
         self.chain = None
 
         # Build the chat/LLM instance based on provider
-        self.chat: BaseChatModel | ChatHuggingFace | ChatLlamaCpp | ChatMLX | ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI | ChatPerplexity | ChatXAI = self._init_llm(provider.lower())
+        self.chat: BaseChatModel | ChatHuggingFace | ChatLlamaCpp | ChatMLX | ChatOpenAI | ChatAnthropic | ChatGoogleGenerativeAI | ChatPerplexity | ChatXAI = self._init_llm(self.provider, **kwargs)
 
         self.workflow = StateGraph(state_schema=State)
 
         # Kick off the first generation pass
         # self.generate_answer(history)
 
-    def _init_llm(self, provider: str | tuple[str, str]) -> BaseChatModel:
+    def _init_llm(self, provider: str | tuple[str, str], **kwargs) -> BaseChatModel:
         """Factory that returns a LangChain‑compatible chat/LLM object."""
         if provider == "openai":
             return ChatOpenAI(
@@ -252,17 +251,18 @@ class LangchainIntegrator:
                 verbose=self.verbose,
             )
         elif provider == "hf-inference":
-            return HuggingFaceEndpoint(
+            llm=HuggingFaceEndpoint(
                 repo_id=self.model_name,
                 temperature=self.temperature,
                 huggingfacehub_api_token=self.api_key,
-                provider="auto",
+                provider=str(kwargs.get("hf_provider", "auto")),
                 max_new_tokens=self.max_tokens,
                 top_p=self.top_p,
                 top_k=self.top_k,
                 repetition_penalty=self.repetition_penalty,
                 verbose=self.verbose,
             )
+            return ChatHuggingFace(llm=llm, verbose=self.verbose, max_tokens=self.max_tokens, model_kwargs={})
         elif provider == "ollama":
             return ChatOllama(
                 model=self.model_name,
@@ -280,7 +280,7 @@ class LangchainIntegrator:
                 pipeline_kwargs={"max_new_tokens": self.max_tokens, "temperature": self.temperature, "top_p": self.top_p, "top_k": self.top_k, "repetition_penalty": self.repetition_penalty}
                 pipe = pipeline(model=self.model, tokenizer=self.tokenizer, task="text-generation")
                 llm = HuggingFacePipeline(pipeline=pipe, pipeline_kwargs=pipeline_kwargs, verbose=self.verbose)
-                return ChatHuggingFaceEnhanced(llm=llm, verbose=self.verbose, max_tokens=self.max_tokens, model_kwargs={})
+                return ChatHuggingFace(llm=llm, verbose=self.verbose, max_tokens=self.max_tokens, model_kwargs={})
             
             elif provider == ("self-provided", "gguf"):
                 # Local GGUF (llama.cpp) model

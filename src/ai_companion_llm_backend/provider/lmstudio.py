@@ -30,14 +30,12 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
         self.user_message = None
         self.chat_history = None
 
-        if self.max_length > 0:
-            self.max_tokens = self.max_length
-        else:
-            self.max_tokens = 4096
+        self.max_tokens = self.max_length if self.max_length > 0 else 4096
 
         self.llm: lms.LLM | None = None
         self.chat: lms.Chat | None = None
-        self.client: lms.Client | Any | None = None
+        self.server_url = str(kwargs.get("server_url", "http://localhost:1234"))
+        self.client = lms.Client(self.server_url)
         self.image_handle: lms.FileHandle | Any | None = None
 
         self.load_model()
@@ -56,19 +54,20 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
                 verbose=True,
             )
         else:
-            self.llm = lms.llm(self.model, config={"seed": self.seed})
+            self.llm = self.client.llm.model(self.model, config={"seed": self.seed})
 
-    def generate_answer(self, history, **kwargs):
+    def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
         if self.use_langchain:
             return self.langchain_integrator.generate_answer(history)
         else:
-            for msg in history[:-1]:
-                if msg["role"] == "system":
-                    self.system_prompt = msg["content"]
+            self.system_prompt = next((msg['content'] for msg in history[:1] if msg['role'] == 'system'), None)
 
-            self.chat = lms.Chat(self.system_prompt)
+            # messages = [{"role": msg['role'], "content": msg['content']} for msg in history[(1 if self.system_prompt else 0):-1]]
+            messages = [{"role": msg['role'], "content": msg['content']} for msg in history[bool(self.system_prompt):-1]]
 
-            for msg in history[:-1]:
+            self.chat = lms.Chat(self.system_prompt) if self.system_prompt else lms.Chat()
+            
+            for msg in messages:
                 if msg["role"] == "user":
                     self.chat.add_user_message(msg["content"])
                 elif msg["role"] == "assistant":
@@ -93,7 +92,7 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
                 answer = ""
                 for fragment in streamer:
                     print(fragment.content, end="", flush=True)
-                    answer.join(fragment.content)
+                    answer+=(fragment.content)
 
             else:
                 response = self.llm.respond(self.chat, config={

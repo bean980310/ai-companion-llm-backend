@@ -34,7 +34,7 @@ class GGUFCausalModelHandler(BaseCausalModelHandler):
     def load_model(self):
         if self.use_langchain:
             self.langchain_integrator = LangchainIntegrator(
-                provider="gguf",
+                provider=("self-provided", "gguf"),
                 model_name=self.local_model_path,
                 lora_model_name=self.local_lora_model_path,
                 max_tokens=self.max_tokens,
