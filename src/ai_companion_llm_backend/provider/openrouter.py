@@ -9,7 +9,7 @@ from openai import OpenAI
 from ..base_handlers import BaseAPIClientWrapper
 
 from ..logging import logger
-from ..langchain_integrator import LangchainIntegrator
+from langchain_integrator import LangchainIntegrator
 
 class OpenRouterClientWrapper(BaseAPIClientWrapper):
     def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):

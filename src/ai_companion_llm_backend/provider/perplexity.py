@@ -10,7 +10,7 @@ from perplexity.types.stream_chunk import StreamChunk
 
 from ..logging import logger
 from ..base_handlers import BaseAPIClientWrapper
-from ..langchain_integrator import LangchainIntegrator
+from langchain_integrator import LangchainIntegrator
 
 class PerplexityClientWrapper(BaseAPIClientWrapper):
     def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):

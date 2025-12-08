@@ -14,7 +14,7 @@ from transformers.tokenization_mistral_common import MistralCommonTokenizer
 
 from .logging import logger
 
-from .langchain_integrator import LangchainIntegrator
+from langchain_integrator import LangchainIntegrator
 from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler
 
 class TransformersCausalModelHandler(BaseCausalModelHandler):

@@ -11,7 +11,7 @@ SERVER_API_HOST = "localhost:1234"
 lms.get_default_client(SERVER_API_HOST)
 
 from ..base_handlers import BaseAPIClientWrapper
-from ..langchain_integrator import LangchainIntegrator
+from langchain_integrator import LangchainIntegrator
 
 class LMStudioIntegrator(BaseAPIClientWrapper):
     def __init__(self, selected_model: str = None, api_key: str = "not-needed", use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, **kwargs):

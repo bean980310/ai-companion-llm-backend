@@ -40,7 +40,7 @@ except ImportError:
     else:
         pass
 
-from .langchain_integrator import LangchainIntegrator
+from langchain_integrator import LangchainIntegrator
 from .logging import logger
 from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler
 

@@ -12,7 +12,7 @@ from openai.types.responses.response_stream_event import ResponseStreamEvent
 
 from ..logging import logger
 from ..base_handlers import BaseAPIClientWrapper
-from ..langchain_integrator import LangchainIntegrator
+from langchain_integrator import LangchainIntegrator
 
 class OpenAIClientWrapper(BaseAPIClientWrapper):
     def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):

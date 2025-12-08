@@ -1,0 +1,7 @@
+torch==2.9.1+cu128
+torchvision
+torchaudio
+
+vllm
+triton
+llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.17-cu128-Basic-linux-20251202/llama_cpp_python-0.3.17-cp312-cp312-linux_x86_64.whl

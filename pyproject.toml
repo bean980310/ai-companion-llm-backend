@@ -1,91 +1,35 @@
+[build-system]
+requires=[
+    "setuptools>=80",
+    "setuptools-scm>=8",
+    "wheel",
+    "build",
+    "uv-build"
+]
+
 [project]
 name = "ai-companion-llm-backend"
-version = "0.1.0"
-description = "Add your description here"
+dynamic=["dependencies", "version", "optional-dependencies"]
+authors=[
+    {name="Hyunbeen Chang", email="bean980310@gmail.com"}
+]
+maintainers=[
+    {name="Hyunbeen Chang", email="bean980310@gmail.com"}
+]
+description = "LLM Backend for AI Companion"
 readme = "README.md"
 requires-python = ">=3.10, <3.14"
-dependencies = [
-    "anthropic>=0.64.0",
-    "cohere>=5.20.0",
-    "datasets[audio]>=3.6.0",
-    "fastmcp>=2.13.1",
-    "fireworks-ai>=0.17.5",
-    "gguf>=0.17.1",
-    "google-genai>=1.32.0",
-    "gptqmodel>4.0.0",
-    "groq>=0.36.0",
-    "huggingface-hub>=0.36.0",
-    "langchain-chroma>=0.1.2",
-    "langchain-classic>=1.0.0",
-    "langchain-mcp-adapters>=0.1.14",
-    "langchain[anthropic,community,google-genai,huggingface,mistralai,ollama,openai,perplexity,xai]>=1.0.0",
-    "lmstudio>=1.5.0",
-    "mcp[cli]>=1.22.0",
-    "mistral-common>=1.8.5",
-    "mistralai>=1.9.11",
-    "novita-sandbox>=1.0.4",
-    "ollama>=0.6.1",
-    "openai>=1.102.2",
-    "openai-harmony>=0.0.8",
-    "peft>=0.18.0",
-    "perplexityai>=0.20.1",
-    "scikit-learn>=1.7.2",
-    "sentence-transformers>=5.1.0",
-    "sentencepiece>=0.2.1",
-    "tiktoken>=0.12.0",
-    "together>=1.5.30",
-    "torch>=2.9.1",
-    "torchaudio>=2.9.1",
-    "torchvision>=0.24.1",
-    "transformers[ja,num2words,video]>=4.57.3",
-    "unstructured[all-docs]>=0.18.11",
-    "x-transformers>=2.7.0",
-    "xai-sdk>=1.4.1",
-]
 
-[project.optional-dependencies]
-metal = [
-    "langchain-mlx>=0.0.1",
-    "llama-cpp-python",
-    "mlx>=0.30.0",
-    "mlx-embeddings>=0.0.5",
-    "mlx-lm>=0.28.3",
-    "mlx-vlm",
-]
-ko = [
-    "jamo",
-    "nltk",
-    "python_mecab_ko",
-    "konlpy",
-    "g2pk2",
-    "g2pkk",
-    "ko_pron",
-]
-ja = [
-    "fugashi",
-    "mecab",
-    "mecab-python3",
-    "ipadic",
-    "unidic_lite",
-    "unidic",
-    "sudachipy",
-    "sudachidict_core",
-    "rhoknp",
-    "pyopenjtalk",
-    "jaconv",
-    "mojimoji",
-    "pykakasi"
-]
-zh = [
-    "jieba",
-    "jieba_fast",
-    "ordered-set",
-    "pypinyin",
-    "cn2an",
-    "pypinyin-dict",
-    "ToJyutping"
-]
-[tool.uv.sources]
-mlx-vlm = { git = "https://github.com/bean980310/mlx-vlm.git", rev = "d05ad8f3c9d3d1157d73b7e10da4fafd5694fa03" }
-llama-cpp-python = { url = "https://github.com/bean980310/llama-cpp-python/releases/download/v0.3.17-metal/llama_cpp_python-0.3.17-cp312-cp312-macosx_26_0_arm64.whl" }
+[tool.setuptools.dynamic]
+dependencies={file=["requirements.txt"]}
+version={attr="ai_companion_llm_backend.__init__.__version__"}
 
+[tool.setuptools.dynamic.optional-dependencies]
+macos_metal = { file = ["requirements_macos_metal.txt"]}
+ko = { file = ["requirements_ko.txt"]}
+ja = { file = ["requirements_ja.txt"]}
+zh = { file = ["requirements_zh.txt"]}
+windows_cu128 = { file = ["requirements_windows_cu128.txt"]}
+linux_cu128 = { file = ["requirements_linux_cu128.txt"]}
+langchain = { file = ["requirements_langchain.txt"]}
+train = { file = ["requirements_train.txt"]}

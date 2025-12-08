@@ -1,0 +1,1 @@
+ai-companion-langchain-integrator @ https://github.com/bean980310/ai-companion-langchain-integrator/releases/download/v0.1.0/ai_companion_langchain_integrator-0.1.0-py3-none-any.whl

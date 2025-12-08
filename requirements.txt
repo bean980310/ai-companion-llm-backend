@@ -1,16 +1,17 @@
 torch
 torchvision
 torchaudio
-transformers[ja, num2words, video]
+transformers[ja, num2words, video]<5.0.0
 scikit-learn
 tiktoken
 sentencepiece
 mistral-common
 huggingface-hub
 x_transformers>=2.7.0
-sentence_transformers>=5.1.0
+sentence_transformers
 datasets[audio]>=3.6.0
 peft
+accelerate
 groq
 together
 fireworks-ai
@@ -25,12 +26,10 @@ perplexityai
 ollama
 lmstudio
 unstructured[all-docs]>=0.18.11
-langchain[community, anthropic, openai, google-genai, ollama, huggingface, perplexity, xai, mistralai]>=1.0.0
-langchain-classic
-langchain-chroma>=0.1.2
-langchain-mcp-adapters
+chromadb
 mcp[cli]
 fastmcp
 gguf
 gptqmodel>4.0.0
 openai-harmony
+llama-cpp-python

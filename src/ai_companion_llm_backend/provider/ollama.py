@@ -8,7 +8,7 @@ import ollama
 SERVER_API_HOST="127.0.0.1:11434"
 
 from ..base_handlers import BaseAPIClientWrapper
-from ..langchain_integrator import LangchainIntegrator
+from langchain_integrator import LangchainIntegrator
 
 class OllamaIntegrator(BaseAPIClientWrapper):
     def __init__(self, selected_model: str = None, api_key: str = "not-needed", use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, **kwargs):

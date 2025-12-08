@@ -1,44 +1,6 @@
-torch
-torchvision
-torchaudio
-transformers[ja, num2words, video]
-scikit-learn
-tiktoken
-sentencepiece
-mistral-common
-huggingface-hub
-x_transformers>=2.7.0
-sentence_transformers>=5.1.0
-datasets[audio]>=3.6.0
-peft
-groq
-together
-fireworks-ai
-novita-sandbox
-cohere
-openai>=1.102.2
-anthropic>=0.64.0
-google-genai>=1.32.0
-mistralai
-xai-sdk
-perplexityai
-ollama
-lmstudio
-unstructured[all-docs]>=0.18.11
-langchain[community, anthropic, openai, google-genai, ollama, huggingface, perplexity, xai, mistralai]>=1.0.0
-langchain-classic
-langchain-chroma>=0.1.2
-langchain-mcp-adapters
-mcp[cli]
-fastmcp
-gguf
-gptqmodel>4.0.0
-openai-harmony
-
 mlx
 mlx-lm
-mlx-vlm @ git+https://github.com/bean980310/mlx-vlm.git@d05ad8f3c9d3d1157d73b7e10da4fafd5694fa03
+mlx-vlm @ git+https://github.com/bean980310/mlx-vlm.git@45a2ed7e09d642a7a53b88e0072af5119f633338
 mlx_embeddings
 
-llama-cpp-python @ https://github.com/bean980310/llama-cpp-python/releases/download/v0.3.17-metal/llama_cpp_python-0.3.17-cp312-cp312-macosx_26_0_arm64.whl
-langchain-mlx
+llama-cpp-python @ https://github.com/bean980310/llama-cpp-python/releases/download/v0.3.17-metal-20251202/llama_cpp_python-0.3.17-cp312-cp312-macosx_26_0_arm64.whl
