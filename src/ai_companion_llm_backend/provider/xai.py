@@ -37,8 +37,8 @@ class XAIClientWrapper(BaseAPIClientWrapper):
         else:
             messages = [{"role": msg['role'], "content": msg['content']} for msg in history]
             logger.info(f"[*] XAI API 요청: {messages}")
-                
-            answer = self.client.chat.create(
+            
+            response = self.client.chat.create(
                 model=self.model, 
                 temperature=self.temperature, 
                 max_tokens=self.max_tokens, 
@@ -46,7 +46,16 @@ class XAIClientWrapper(BaseAPIClientWrapper):
                 top_p=self.top_p,
                 top_logprobs=self.top_k,
                 frequency_penalty=self.repetition_penalty,
-                # presence_penalty=self.repetition_penalty
-            ).sample().content
+                presence_penalty=self.repetition_penalty
+            )
+            
+            if self.enable_streaming:
+                answer = ""
+                for stream, chunk in response.stream():
+                    answer += chunk.content
+
+            else:
+                answer = response.sample().content
+            
             return answer
     

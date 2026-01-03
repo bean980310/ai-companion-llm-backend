@@ -6,6 +6,7 @@ from PIL import Image, ImageFile
 
 from huggingface_hub import InferenceClient, InferenceEndpoint
 from openai import OpenAI
+from openrouter import OpenRouter
 from ..base_handlers import BaseAPIClientWrapper
 
 from ..logging import logger
@@ -17,6 +18,8 @@ class OpenRouterClientWrapper(BaseAPIClientWrapper):
 
         if self.use_langchain: self.load_model()
         else: self.client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=self.api_key)
+        # else: self.client = OpenRouter(api_key=self.api_key)
+
 
     def load_model(self):
         self.langchain_integrator = LangchainIntegrator(
@@ -37,6 +40,13 @@ class OpenRouterClientWrapper(BaseAPIClientWrapper):
         else:
             messages = [{"role": msg['role'], "content": msg['content']} for msg in history]
             logger.info(f"[*] OpenRouter API 요청: {messages}")
+
+            # with self.client as client:
+            #     response = client.chat.send(
+            #         model=self.model,
+            #         messages=messages,
+                    
+            #     )
 
             chat_completion = self.client.chat.completions.create(
                 model=self.model,

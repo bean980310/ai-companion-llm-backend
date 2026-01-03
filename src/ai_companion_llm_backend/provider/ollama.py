@@ -4,6 +4,7 @@ from typing import Any, BinaryIO
 from typing_extensions import Buffer
 from PIL import Image, ImageFile
 import ollama
+from ollama import Options
 
 SERVER_API_HOST="127.0.0.1:11434"
 
@@ -31,7 +32,7 @@ class OllamaIntegrator(BaseAPIClientWrapper):
 
     def load_model(self):
         self.langchain_integrator = LangchainIntegrator(
-            provider="lmstudio",
+            provider="ollama",
             model_name=self.model,
             api_key="not-needed",
             max_tokens=self.max_tokens,
@@ -47,4 +48,59 @@ class OllamaIntegrator(BaseAPIClientWrapper):
             return self.langchain_integrator.generate_answer(history)
 
         else:
-            ollama.chat()
+            messages = [{"role": msg['role'], "content": msg['content']} for msg in history]
+            
+            if self.enable_streaming:
+                stream = self.client.chat(
+                    model=self.model,
+                    messages=messages,
+                    options=Options(
+                        seed=self.seed,
+                        temperature=self.temperature,
+                        top_p=self.top_p,
+                        top_k=self.top_k,
+                        repeat_penalty=self.repetition_penalty,
+                        num_predict=self.max_tokens,     
+                    ),
+                    stream=True,
+                    think='medium' if self.enable_thinking else None,
+                )
+                in_thinking = False
+                answer = ""
+                thinking = ""
+                
+                for chunk in stream:
+                    if chunk.message.thinking:
+                        if not in_thinking:
+                            in_thinking = True
+                            print('Thinking:\n', end='', flush=True)
+                        print(chunk.message.thinking, end='', flush=True)
+                        thinking += chunk.message.thinking
+                    elif chunk.message.content:
+                        if in_thinking:
+                            in_thinking = False
+                            print('\n\nAnswer:\n', end='', flush=True)
+                        print(chunk.message.content, end='', flush=True)
+                        answer += chunk.message.content
+
+            else:
+                response = self.client.chat(
+                    model=self.model,
+                    messages=messages,
+                    options=Options(
+                        seed=self.seed,
+                        temperature=self.temperature,
+                        top_p=self.top_p,
+                        top_k=self.top_k,
+                        repeat_penalty=self.repetition_penalty,
+                        num_predict=self.max_tokens,     
+                    ),
+                    stream=False,
+                    think='medium' if self.enable_thinking else None,
+                )
+
+                thinking = response.message.thinking if response.message.thinking else ""
+                answer = response.message.content
+
+            print(f'\n\n thinking:{thinking}\n answer:{answer}')
+            return answer.strip()
