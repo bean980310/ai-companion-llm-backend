@@ -8,7 +8,7 @@ sentencepiece
 mistral-common
 huggingface-hub
 x_transformers>=2.7.0
-sentence_transformers @ git+https://github.com/huggingface/sentence-transformers.git
+sentence_transformers
 datasets[audio]>=3.6.0
 peft
 accelerate
