@@ -144,7 +144,45 @@ class BaseAPIClientWrapper(BaseModel):
     @abstractmethod
     def generate_answer(self, history, **kwargs):
         pass
-    
+
+    def generate_chat_title(self, first_message: str, image_input=None) -> str:
+        """
+        Generate a chat title based on the first message.
+        Uses the API to summarize the message into a short title.
+        """
+        prompt = (
+            "Create a very short chat title (max 5-7 words) that summarizes the following message. "
+            "Reply with ONLY the title, no quotes or extra text:\n\n"
+            f"{first_message}"
+        )
+
+        history = [
+            {"role": "system", "content": "You are a helpful assistant that creates concise chat titles."},
+            {"role": "user", "content": prompt}
+        ]
+
+        # Temporarily reduce max_tokens for title generation
+        original_max_tokens = self.max_tokens
+        self.max_tokens = 30
+
+        try:
+            title = self.generate_answer(history)
+            # Clean up the title
+            title = title.strip().strip('"\'').strip()
+            # Truncate if too long
+            if len(title) > 50:
+                title = title[:47] + "..."
+            return title
+        except Exception as e:
+            from .logging import logger
+            logger.warning(f"Failed to generate chat title via API: {e}")
+            # Fallback to truncated first message
+            if isinstance(first_message, str):
+                return first_message[:50] + "..." if len(first_message) > 50 else first_message
+            return "New Chat"
+        finally:
+            self.max_tokens = original_max_tokens
+
     @staticmethod
     def encode_image(image_path: str):
         with open(image_path, "rb") as image_file:
