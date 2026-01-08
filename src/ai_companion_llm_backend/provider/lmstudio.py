@@ -1,5 +1,6 @@
 # WIP: src/pipelines/llm/api/lmstudio.py
 import os
+import warnings
 from typing import Any, BinaryIO
 
 from typing_extensions import Buffer
@@ -11,7 +12,12 @@ SERVER_API_HOST = "localhost:1234"
 lms.get_default_client(SERVER_API_HOST)
 
 from ..base_handlers import BaseAPIClientWrapper
-from langchain_integrator import LangchainIntegrator
+try:
+    from langchain_integrator import LangchainIntegrator
+    LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
+except ImportError:
+    warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
+    LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 
 class LMStudioIntegrator(BaseAPIClientWrapper):
     def __init__(self, selected_model: str = None, api_key: str = "not-needed", use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, **kwargs):
@@ -38,10 +44,13 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
         self.client = lms.Client(self.server_url)
         self.image_handle: lms.FileHandle | Any | None = None
 
+        if self.use_langchain and LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE:
+            self.enable_langchain = True
+
         self.load_model()
 
     def load_model(self):
-        if self.use_langchain:
+        if self.enable_langchain:
             self.langchain_integrator = LangchainIntegrator(
                 provider="lmstudio",
                 model_name=self.model,
@@ -57,7 +66,7 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
             self.llm = self.client.llm.model(self.model, config={"seed": self.seed})
 
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
-        if self.use_langchain:
+        if self.enable_langchain:
             return self.langchain_integrator.generate_answer(history)
         else:
             self.system_prompt = next((msg['content'] for msg in history[:1] if msg['role'] == 'system'), None)

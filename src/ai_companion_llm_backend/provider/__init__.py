@@ -7,4 +7,5 @@ from .openrouter import OpenRouterClientWrapper
 from .huggingface import HuggingfaceInferenceClientWrapper
 from .lmstudio import LMStudioIntegrator
 from .ollama import OllamaIntegrator
+from .vllm import vLLMClientWrapper
 # from ..langchain_integrator.langchain import LangchainIntegrator

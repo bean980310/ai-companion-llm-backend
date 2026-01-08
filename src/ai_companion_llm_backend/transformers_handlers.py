@@ -1,5 +1,6 @@
 import os
 import traceback
+import warnings
 import threading
 import random
 from typing import Any, Generator, List
@@ -11,8 +12,12 @@ from peft import PeftModel
 from transformers import AutoTokenizer, AutoProcessor, AutoModel, AutoModelForImageTextToText, AutoModelForCausalLM, GenerationConfig, Llama4ForConditionalGeneration, TextStreamer, TextIteratorStreamer, Qwen3ForCausalLM, Qwen3MoeForCausalLM, Mistral3ForConditionalGeneration, MistralForCausalLM, Llama4Processor, LlamaTokenizer, set_seed, BatchEncoding
 
 from .logging import logger
-
-from langchain_integrator import LangchainIntegrator
+try:
+    from langchain_integrator import LangchainIntegrator
+    LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
+except ImportError:
+    warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
+    LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler
 
 class TransformersCausalModelHandler(BaseCausalModelHandler):
@@ -34,6 +39,9 @@ class TransformersCausalModelHandler(BaseCausalModelHandler):
         set_seed(self.seed)
         if torch.backends.mps.is_available():
             torch.mps.manual_seed(self.seed)
+
+        if self.enable_langchain:
+            self.enable_langchain = True
         self.load_model()
         
     def load_model(self):
@@ -43,7 +51,7 @@ class TransformersCausalModelHandler(BaseCausalModelHandler):
         if self.local_lora_model_path and os.path.exists(self.local_lora_model_path):
             self.model = PeftModel.from_pretrained(self.model, self.local_lora_model_path)
 
-        if self.use_langchain:
+        if self.enable_langchain:
             self.langchain_integrator = LangchainIntegrator(
                 provider=("self-provided", "transformers"),
                 model=self.model,
@@ -57,7 +65,7 @@ class TransformersCausalModelHandler(BaseCausalModelHandler):
             )
         
     def generate_answer(self, history, **kwargs):
-        if self.use_langchain:
+        if self.enable_langchain:
             return self.langchain_integrator.generate_answer(history)
         else:
             prompt_messages = [{"role": msg['role'], "content": msg['content']} for msg in history]

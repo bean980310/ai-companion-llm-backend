@@ -80,3 +80,16 @@ ProviderRegistry.register(
         ),
     )
 )
+
+ProviderRegistry.register(
+    ProviderSpec(
+        id="vllm",
+        display_name="vLLM (Local)",
+        requires_api_key=False,
+        base_url_hint="http://localhost:8000",
+        default_kwargs={"temperature": 1.0, "top_p": 1.0, "top_k": 50, "repetition_penalty": 1.0},
+        capabilities=ProviderCapabilities(
+            chat=True, vision=True, tools=True, embeddings=False, json_mode=True, streaming=True
+        ),
+    )
+)

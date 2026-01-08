@@ -1,4 +1,5 @@
 import traceback
+import warnings
 from typing import Any
 
 from PIL import Image, ImageFile
@@ -10,33 +11,40 @@ from perplexity.types.stream_chunk import StreamChunk
 
 from ..logging import logger
 from ..base_handlers import BaseAPIClientWrapper
-from langchain_integrator import LangchainIntegrator
+try:
+    from langchain_integrator import LangchainIntegrator
+    LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
+except ImportError:
+    warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
+    LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 
 class PerplexityClientWrapper(BaseAPIClientWrapper):
     def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):
         super().__init__(selected_model, api_key, use_langchain, image_input, **kwargs)
 
-        if self.use_langchain: self.load_model()
-        else: self.client = Perplexity(api_key=self.api_key)
-
+        if self.use_langchain and LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE: self.enable_langchain = True
+        self.load_model()
 
     def load_model(self):
-        self.langchain_integrator = LangchainIntegrator(
-            provider="perplexity",
-            model_name=self.model,
-            api_key=self.api_key,
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
-            top_p=self.top_p,
-            top_k=self.top_k,
-            repetition_penalty=self.repetition_penalty,
-            verbose=True,
-            enable_thinking=self.enable_thinking,
-            image_input=self.image_input
-        )
+        if self.enable_langchain:
+            self.langchain_integrator = LangchainIntegrator(
+                provider="perplexity",
+                model_name=self.model,
+                api_key=self.api_key,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                top_k=self.top_k,
+                repetition_penalty=self.repetition_penalty,
+                verbose=True,
+                enable_thinking=self.enable_thinking,
+                image_input=self.image_input
+            )
+        else: 
+            self.client = Perplexity(api_key=self.api_key)
 
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
-        if self.use_langchain:
+        if self.enable_langchain:
             return self.langchain_integrator.generate_answer(history)
         else:
             messages = [{"role": msg['role'], "content": msg['content']} for msg in history[:-1]]
