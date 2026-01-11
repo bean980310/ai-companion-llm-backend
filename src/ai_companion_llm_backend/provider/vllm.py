@@ -85,7 +85,7 @@ class vLLMClientWrapper(BaseAPIClientWrapper):
         """Initialize the OpenAI client or LangchainIntegrator."""
         if self.enable_langchain:
             self.langchain_integrator = LangchainIntegrator(
-                provider="vllm",
+                provider="vllm-api",
                 model_name=self.model,
                 api_key=self.api_key,
                 base_url=f"{self.server_url}/v1",

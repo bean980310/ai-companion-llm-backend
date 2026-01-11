@@ -108,7 +108,7 @@ class VllmCausalModelHandler(BaseCausalModelHandler):
         """Load the vLLM model or initialize LangchainIntegrator."""
         if self.enable_langchain:
             self.langchain_integrator = LangchainIntegrator(
-                provider=("self-provided", "vllm"),
+                provider=("self-provided", "vllm-local"),
                 model_name=self.local_model_path,
                 lora_model_name=self.local_lora_model_path,
                 max_tokens=self.max_tokens,
