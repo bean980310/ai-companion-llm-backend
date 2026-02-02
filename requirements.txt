@@ -1,7 +1,7 @@
 torch
 torchvision
 torchaudio
-transformers[ja, num2words, video]
+transformers[ja, num2words, video]>=5.0.0
 scikit-learn
 tiktoken
 sentencepiece

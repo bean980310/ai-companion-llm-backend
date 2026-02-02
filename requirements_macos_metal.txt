@@ -1,6 +1,6 @@
 mlx
-mlx-lm
-mlx-vlm @ git+https://github.com/bean980310/mlx-vlm.git@45a2ed7e09d642a7a53b88e0072af5119f633338
+mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@7afcfac51a407bc5774046378918dcd50ab44e48
+mlx-vlm @ git+https://github.com/bean980310/mlx-vlm.git@5352efa1b02c4e33860fc0923f1927effb9a1f01
 mlx_embeddings
 
-llama-cpp-python @ https://github.com/bean980310/llama-cpp-python/releases/download/v0.3.17-metal-20251202/llama_cpp_python-0.3.17-cp312-cp312-macosx_26_0_arm64.whl
+llama-cpp-python @ https://github.com/bean980310/llama-cpp-python/releases/download/v0.3.20-metal/llama_cpp_python-0.3.20-cp312-cp312-macosx_26_0_arm64.whl
