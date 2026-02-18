@@ -18,7 +18,7 @@ try:
 except ImportError:
     warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
-from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler
+from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseOmniModelHandler, BaseModelHandler
 
 class TransformersCausalModelHandler(BaseCausalModelHandler):
     def __init__(self, model_id, lora_model_id=None, model_type="transformers", device='cpu', use_langchain: bool = True, **kwargs):
@@ -120,20 +120,41 @@ class TransformersCausalModelHandler(BaseCausalModelHandler):
 
     def load_template(self, messages):
         if "qwen3" in self.model_id.lower() and "instruct" not in self.model_id.lower() and "thinking" not in self.model_id.lower():
-            return self.tokenizer.apply_chat_template(
-                messages,
-                add_generation_prompt=True,
-                return_tensors="pt",
-                tokenize=False,
-                enable_thinking=self.enable_thinking
-            )
+            try:
+                return self.tokenizer.apply_chat_template(
+                    messages,
+                    tools=self.tools,
+                    add_generation_prompt=True,
+                    return_tensors="pt",
+                    tokenize=False,
+                    enable_thinking=self.enable_thinking
+                )
+            except:
+                logger.error("ERROR: 도구 호출에 실패하여 도구 호출을 건너뜀")
+                return self.tokenizer.apply_chat_template(
+                    messages,
+                    add_generation_prompt=True,
+                    return_tensors="pt",
+                    tokenize=False,
+                    enable_thinking=self.enable_thinking
+                )
         else:
-            return self.tokenizer.apply_chat_template(
-                messages,
-                add_generation_prompt=True,
-                return_tensors="pt",
-                tokenize=False
-            )
+            try:
+                return self.tokenizer.apply_chat_template(
+                    messages,
+                    tools=self.tools,
+                    add_generation_prompt=True,
+                    return_tensors="pt",
+                    tokenize=False
+                )
+            except:
+                logger.error("ERROR: 도구 호출에 실패하여 도구 호출을 건너뜀")
+                return self.tokenizer.apply_chat_template(
+                    messages,
+                    add_generation_prompt=True,
+                    return_tensors="pt",
+                    tokenize=False
+                )
         
     def _generate_streaming(self, input_ids: Any | str | list[int] | list[str] | list[list[int]] | BatchEncoding) -> str | Generator[str, Any, None]:
         """
@@ -171,8 +192,6 @@ class TransformersCausalModelHandler(BaseCausalModelHandler):
 class TransformersVisionModelHandler(BaseVisionModelHandler):
     def __init__(self, model_id, lora_model_id=None, model_type="transformers", device='cpu', use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):
         super().__init__(model_id, lora_model_id, use_langchain, image_input, **kwargs)
-
-        self.image_input = image_input
 
         self.max_new_tokens = self.max_tokens
 
@@ -244,19 +263,39 @@ class TransformersVisionModelHandler(BaseVisionModelHandler):
 
     def load_template(self, messages):
         if self.image_input:
-            return self.processor(
-                images=[self.image_input[i] for i in range(len(self.image_input))] if isinstance(self.image_input, list) else self.image_input,
-                text=messages,
-                add_special_tokens=False,
-                return_tensors="pt"
-            )
+            try:
+                return self.processor.apply_chat_template(
+                    messages,
+                    tools=self.tools,
+                    add_generation_prompt=True,
+                    tokenize=False,
+                    return_tensors="pt"
+                )
+            except:
+                logger.error("ERROR: 도구 호출에 실패하여 도구 호출을 건너뜀")
+                return self.processor.apply_chat_template(
+                    messages,
+                    add_generation_prompt=True,
+                    tokenize=False,
+                    return_tensors="pt"
+                )
         else:
-            return self.tokenizer.apply_chat_template(
-                messages,
-                add_generation_prompt=True,
-                return_tensors="pt",
-                tokenize=False
-            )
+            try:
+                return self.tokenizer.apply_chat_template(
+                    messages,
+                    tools=self.tools,
+                    add_generation_prompt=True,
+                    return_tensors="pt",
+                    tokenize=False
+                )
+            except:
+                logger.error("ERROR: 도구 호출에 실패하여 도구 호출을 건너뜀")
+                return self.tokenizer.apply_chat_template(
+                    messages,
+                    add_generation_prompt=True,
+                    return_tensors="pt",
+                    tokenize=False
+                )
         
     def _generate_streaming(self, inputs:  Any | str | list[int] | list[str] | list[list[int]] | BatchEncoding):
         streamer = TextStreamer(self.processor, skip_prompt=True)
@@ -284,6 +323,18 @@ class TransformersVisionModelHandler(BaseVisionModelHandler):
                 generated_text += ''.join(response)
                 yield generated_text.strip()
 
+
+class TransformersOmniModelHandler(BaseOmniModelHandler):
+    def __init__(self, model_id: str, lora_model_id: str | None = None, model_type='transformers', device='cpu', use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, audio_input: str | List[str] | Any | None = None, **kwargs):
+        super().__init__(model_id, lora_model_id, use_langchain, image_input, audio_input, **kwargs)
+
+        self.max_new_tokens = self.max_tokens
+        self.device = device
+
+        set_seed(self.seed)
+        if torch.backends.mps.is_available():
+            torch.mps.manual_seed(self.seed)
+        self.load_model()
 
 # class TransformersLlama4ModelHandler(BaseModelHandler):
 #     def __init__(self, model_id, lora_model_id=None, model_type="transformers", device='cpu', use_langchain: bool = True, **kwargs):

@@ -48,7 +48,7 @@ except ImportError:
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 
 from .logging import logger
-from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler
+from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler, BaseOmniModelHandler
 
 class MlxCausalModelHandler(BaseCausalModelHandler):
     def __init__(self, model_id, lora_model_id=None, model_type="mlx", use_langchain: bool = True, **kwargs):
@@ -205,7 +205,10 @@ class MlxVisionModelHandler(BaseVisionModelHandler):
             return self.langchain_integrator.generate_answer(history)
         else:
             formatted_prompt = self.load_template(history)
-            response = mlx_vlm_generate(self.model, self.processor, formatted_prompt, image=self.image_input, verbose=True, temperature=self.temperature, top_p=self.top_p, top_k=self.top_k, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens, max_kv_size=2048)
+            response = mlx_vlm_generate(self.model, self.processor, formatted_prompt, image=self.image_input, verbose=True, sampler=self.sampler, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens, max_kv_size=2048)
+
+            if "</think>" in response.text:
+                _, response.text = response.text.split("</think>", 1)
 
             return response.text.strip()
 
@@ -232,7 +235,115 @@ class MlxVisionModelHandler(BaseVisionModelHandler):
         generated_text = ""
         temp = ""
 
-        for response in mlx_vlm_stream_generate(self.model, self.processor, prompt_text, self.image_input, verbose=True, temperature=self.temperature, top_p=self.top_p, top_k=self.top_k, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens):
+        for response in mlx_vlm_stream_generate(self.model, self.processor, prompt_text, self.image_input, verbose=True, sampler=self.sampler, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens):
+            print(response, end='', flush=True)
+            if "<think>" in response:
+                while "</think>" not in response:
+                    temp += ''.join(response)
+                else:
+                    temp += ''.join(response)
+                    _, generated_text = temp.split("</think>", 1)
+                    yield generated_text.strip()
+            else:
+                generated_text += ''.join(response)
+                yield generated_text.strip()
+
+    def _generate_streaming(self, prompt_text: str) -> str | Generator[GenerationResponse, None, None]:
+        """
+        Generate text in chunks to avoid very long single-pass generations.
+        Calls mlx_lm_generate repeatedly, appending the continuation each time.
+        Stops if EOS or no progress is made.
+        """
+
+        generated_text = ""
+        temp = ""
+        for response in mlx_lm_stream_generate(self.model, self.tokenizer, prompt=prompt_text, verbose=True, sampler=self.sampler, logits_processors=self.logits_processors, max_tokens=self.max_tokens):
+            print(response.text, end='', flush=True)
+            if "<think>" in response.text:
+                while "</think>" not in response.text:
+                    temp += ''.join(response.text)
+                else:
+                    temp += ''.join(response.text)
+                    _, generated_text = temp.split("</think>", 1)
+                    yield generated_text.strip()
+            else:
+                generated_text += ''.join(response.text)
+                yield generated_text.strip()
+
+    @staticmethod
+    def set_seed(seed):
+        random.seed(seed)
+        np.random.seed(seed)
+        mx.random.seed(seed)
+
+class MlxOmniModelHandler(BaseOmniModelHandler):
+    def __init__(self, model_id, lora_model_id=None, model_type="mlx", use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, audio_input: str | List[str] | Any | None = None, **kwargs):
+        super().__init__(model_id, lora_model_id, use_langchain, image_input, audio_input, **kwargs)
+
+        self.sampler = None
+        self.logits_processors = None
+        self.tokenizer_config = kwargs.get("tokenizer_config", {})
+
+        if self.use_langchain and LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE:
+            self.enable_langchain = True
+
+        self.set_seed(self.seed)
+        self.load_model()
+
+    def load_model(self):
+        if self.enable_langchain and not self.image_input:
+            self.langchain_integrator = LangchainIntegrator(
+                provider="mlx",
+                model_name=self.local_model_path,
+                lora_model_name=self.local_lora_model_path,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                top_k=self.top_k,
+                top_p=self.top_p,
+                repetition_penalty=self.repetition_penalty,
+                verbose=True
+            )
+        else:
+            self.model, self.processor = mlx_vlm_load(self.local_model_path, adapter_path=self.local_lora_model_path, lazy=True)
+            self.config = load_config(self.local_model_path)
+        
+
+    def generate_answer(self, history, **kwargs):
+        if self.enable_langchain and not self.image_input:
+            return self.langchain_integrator.generate_answer(history)
+        else:
+            formatted_prompt = self.load_template(history)
+            response = mlx_vlm_generate(self.model, self.processor, formatted_prompt, image=self.image_input, audio=self.audio_input, verbose=True, sampler=self.sampler, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens, max_kv_size=2048)
+
+            if "</think>" in response.text:
+                _, response.text = response.text.split("</think>", 1)
+
+            return response.text.strip()
+
+    def get_settings(self):
+        self.sampler = make_sampler(
+            temp=self.temperature,
+            top_p=self.top_p,
+            top_k=self.top_k
+        )
+        self.logits_processors = make_logits_processors(repetition_penalty=self.repetition_penalty)
+        # return temperature, top_k, top_p, repetition_penalty
+
+    def load_template(self, messages):
+        return apply_chat_template(
+            processor=self.processor,
+            config=self.config,
+            prompt=messages,
+            num_images=len(self.image_input), # <-- history 자체를 전달
+            add_generation_prompt=True,
+        )
+
+
+    def _generate_streaming_vision(self, prompt_text: str) -> str | Generator[str, None, None]:
+        generated_text = ""
+        temp = ""
+
+        for response in mlx_vlm_stream_generate(self.model, self.processor, prompt_text, self.image_input, verbose=True, sampler=self.sampler, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens):
             print(response, end='', flush=True)
             if "<think>" in response:
                 while "</think>" not in response:
@@ -273,6 +384,7 @@ class MlxVisionModelHandler(BaseVisionModelHandler):
         np.random.seed(seed)
         mx.random.seed(seed)
     
+
 # class MlxLlama4ModelHandler(BaseModelHandler):
 #     def __init__(self, model_id, lora_model_id=None, model_type="mlx", image_input=None, use_langchain: bool = True, **kwargs):
 #         super().__init__(model_id, lora_model_id, use_langchain, **kwargs)

@@ -37,6 +37,7 @@ class BaseModel(ABC):
         self.image_input = image_input
         self.audio_input = audio_input
         self.enable_streaming = bool(kwargs.get("enable_streaming", False))
+        self.tools = list[str](kwargs.get("tools", []))
 
         self.max_tokens = int(kwargs.get("max_tokens", 4096))
         self.max_length = int(kwargs.get("max_length", -1))
@@ -47,7 +48,7 @@ class BaseModel(ABC):
         self.repetition_penalty = float(kwargs.get("repetition_penalty", 1.0))
         self.enable_thinking = bool(kwargs.get("enable_thinking", False))
         self.enable_langchain = False
-
+        
         self.langchain_integrator = None
 
         self.use_chunking = bool(kwargs.get("use_chunking", False))
@@ -171,7 +172,7 @@ class BaseVisionModelHandler(BaseModelHandler):
     def load_template(self, messages):
         pass
 
-class BaseMultimodalModelHandler(BaseModelHandler):
+class BaseOmniModelHandler(BaseModelHandler):
     def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, audio_input: str | List[str] | Any | None = None, **kwargs):
         super().__init__(model_id, lora_model_id, use_langchain, image_input, audio_input, **kwargs)
         
