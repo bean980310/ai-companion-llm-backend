@@ -102,7 +102,7 @@ class AnthropicClientWrapper(BaseAPIClientWrapper):
                     # frequency_penalty=repetition_penalty,
                     max_tokens=self.max_tokens,
                     thinking={"type": "enabled", "budget_tokens": 10000} if self.enable_thinking else {"type": "disabled"},
-                    betas=["files-api-2025-04-14"]
+                    betas=["files-api-2025-04-14", "skills-2025-10-02", "code_execution_20250825", "web_search_20260209", "mcp-client-2025-11-20"]
                 ) as stream:
                     for text in stream.text_stream:
                         print(text, end="", flush=True)
@@ -119,7 +119,7 @@ class AnthropicClientWrapper(BaseAPIClientWrapper):
                     # frequency_penalty=repetition_penalty,
                     max_tokens=self.max_tokens,
                     thinking={"type": "enabled", "budget_tokens": 10000} if self.enable_thinking else {"type": "disabled"},
-                    betas=["files-api-2025-04-14"]
+                    betas=["files-api-2025-04-14", "skills-2025-10-02", "code_execution_20250825", "web_search_20260209", "mcp-client-2025-11-20"]
                 )
                 answer = response.content[0].text
 

@@ -6,6 +6,7 @@ from typing import Any, BinaryIO
 from typing_extensions import Buffer
 from PIL import Image, ImageFile
 import lmstudio as lms
+from lmstudio import FileHandle
 
 SERVER_API_HOST = "localhost:1234"
 
@@ -78,14 +79,25 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
             
             for msg in messages:
                 if msg["role"] == "user":
-                    self.chat.add_user_message(msg["content"])
+                    if msg["content"]["type"] == "text":
+                        user_content = msg["content"]["text"]
+                    elif msg["content"]["type"] == "image":
+                        user_content = msg["content"]["image_url"]
+                    self.chat.add_user_message(user_content)
                 elif msg["role"] == "assistant":
-                    self.chat.add_assistant_response(msg["content"])
-
-            self.user_message = history[-1]["content"]
+                    if msg["content"]["type"] == "text":
+                        self.chat.add_assistant_response(msg["content"]["text"])
+                    
+            self.user_message = history[-1]["content"]["text"]
 
             if self.image_input is not None:
-                self.image_handle = lms.prepare_image(self.image_input)
+                if isinstance(self.image_input, list[str]):
+                    self.image_handle: FileHandle = []
+                    for image in self.image_input:
+                        self.image_handle.append(lms.prepare_image(image))
+                else:
+                    self.image_handle = lms.prepare_image(self.image_input)
+                    
                 self.chat.add_user_message(self.user_message, images=[self.image_handle])
             else:
                 self.chat.add_user_message(self.user_message)

@@ -19,8 +19,6 @@ class HuggingfaceInferenceClientWrapper(BaseAPIClientWrapper):
     def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, **kwargs):
         super().__init__(selected_model, api_key, use_langchain, **kwargs)
 
-        self.hf_provider = self.selected_model.split(":")[-1] if ":" in self.selected_model else "auto"
-
         if self.use_langchain and LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE:
             self.enable_langchain = True
         self.load_model()
@@ -38,9 +36,8 @@ class HuggingfaceInferenceClientWrapper(BaseAPIClientWrapper):
                 top_k=self.top_k,
                 repetition_penalty=self.repetition_penalty,
                 verbose=True,
-                hf_provider=self.hf_provider
             )
-        else: self.client = InferenceClient(token=self.api_key, provider=self.hf_provider,)
+        else: self.client = InferenceClient(api_key=self.api_key)
 
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
         if self.enable_langchain:
