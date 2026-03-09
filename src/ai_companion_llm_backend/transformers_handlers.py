@@ -24,7 +24,7 @@ except ImportError:
 from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseOmniModelHandler, BaseModelHandler
 
 class TransformersUnifiedModelHandler(BaseModelHandler):
-    def __init__(self, model_id: str, lora_model_id: str | None = None, model_type='transformers', device='cpu', use_langchain: bool = True, image_input: str | [List[str]] | Image.Image | ImageFile.ImageFile | Any | None = None, audio_input: str | List[str] | Any | None = None, video_input: str | List[str] | Any | None = None, **kwargs):
+    def __init__(self, model_id: str, lora_model_id: str | None = None, model_type='transformers', device='cpu', use_langchain: bool = True, image_input: str | List[str] | Image.Image | ImageFile.ImageFile | Any | None = None, audio_input: str | List[str] | Any | None = None, video_input: str | List[str] | Any | None = None, **kwargs):
         super().__init__(model_id, lora_model_id, use_langchain, image_input, audio_input, video_input, **kwargs)
 
         if self.max_length > 0:
