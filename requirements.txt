@@ -1,7 +1,7 @@
 torch
 torchvision
 torchaudio
-transformers[ja, num2words, video]>=5.0.0
+transformers>=5.0.0
 scikit-learn
 tiktoken
 sentencepiece
@@ -9,7 +9,7 @@ mistral-common
 huggingface-hub
 x_transformers>=2.7.0
 sentence_transformers
-datasets[audio]>=3.6.0
+datasets>=3.6.0
 peft
 accelerate
 groq
