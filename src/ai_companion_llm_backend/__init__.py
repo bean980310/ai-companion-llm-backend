@@ -8,9 +8,11 @@ from .provider.vllm import vLLMClientWrapper
 __all__ = [
     "TransformersCausalModelHandler",
     "TransformersVisionModelHandler",
+    "TransformersUnifiedModelHandler",
     "GGUFCausalModelHandler",
     "MlxCausalModelHandler",
     "MlxVisionModelHandler",
+    "MlxUnifiedModelHandler",
     "VllmCausalModelHandler",
     "vLLMClientWrapper",
 ]
