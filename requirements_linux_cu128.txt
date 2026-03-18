@@ -4,4 +4,8 @@ torchaudio
 
 vllm
 triton
-llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.30-cu128-Basic-linux-20260302/llama_cpp_python-0.3.30+cu128.basic-cp312-cp312-linux_x86_64.whl
+llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.33-cu128-Basic-linux-20260315/llama_cpp_python-0.3.33+cu128.basic-cp310-cp310-linux_x86_64.whl ; python_version=='3.10'
+llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.33-cu128-Basic-linux-20260315/llama_cpp_python-0.3.33+cu128.basic-cp311-cp311-linux_x86_64.whl ; python_version=='3.11'
+llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.33-cu128-Basic-linux-20260315/llama_cpp_python-0.3.33+cu128.basic-cp312-cp312-linux_x86_64.whl ; python_version=='3.12'
+llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.33-cu128-Basic-linux-20260315/llama_cpp_python-0.3.33+cu128.basic-cp313-cp313-linux_x86_64.whl ; python_version=='3.13'
+

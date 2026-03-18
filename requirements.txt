@@ -30,6 +30,6 @@ chromadb
 mcp[cli]
 fastmcp
 gguf
-gptqmodel>4.0.0
+gptqmodel>5.0.0
 openai-harmony
 llama-cpp-python
