@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import Any, BinaryIO, Union, List
@@ -20,7 +22,7 @@ except ImportError:
         warnings.warn("langchain_mlx is not installed. Please install it to use MLX features.", UserWarning)
     else:
         pass
-    
+
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizerBase, GenerationMixin, PreTrainedModel, AutoModelForImageTextToText, AutoModel, AutoProcessor, ProcessorMixin, AutoConfig, PretrainedConfig, GenerationConfig, PythonBackend, TokenizersBackend
 from transformers.models.auto.modeling_auto import MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES, MODEL_FOR_CAUSAL_LM_MAPPING_NAMES, MODEL_FOR_MULTIMODAL_LM_MAPPING_NAMES
 from peft import PeftModel
@@ -34,10 +36,14 @@ except ImportError:
     else:
         pass
 
+
 class UnsupportedTaskError(Exception):
     pass
 
+
 FileInput = Union[str, "os.PathLike[str]", list[str], Path, "os.PathLike[Path]", list[Path]]
+
+
 class BaseModel(ABC):
     def __init__(self, use_langchain: bool = True, image_input: str | List[str] | Image.Image | List[Image.Image] | ImageFile.ImageFile | List[ImageFile.ImageFile] | Any | None = None, audio_input: str | List[str] | Any | None = None, video_input: str | List[str] | Any | None = None, **kwargs):
         self.use_langchain = use_langchain
@@ -60,7 +66,7 @@ class BaseModel(ABC):
         self.repetition_penalty = float(kwargs.get("repetition_penalty", 1.0))
         self.enable_thinking = bool(kwargs.get("enable_thinking", False))
         self.enable_langchain = False
-        
+
         self.langchain_integrator = None
 
         self.use_chunking = bool(kwargs.get("use_chunking", False))
@@ -85,6 +91,7 @@ class BaseModel(ABC):
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str]]]], **kwargs):
         pass
 
+
 class BaseModelHandler(BaseModel):
     def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = True, image_input: str | List[str] | Image.Image | ImageFile.ImageFile | Any | None = None, audio_input: str | List[str] | Any | None = None, video_input: str | List[str] | Any | None = None, **kwargs):
         super().__init__(use_langchain, image_input, audio_input, video_input, **kwargs)
@@ -103,15 +110,15 @@ class BaseModelHandler(BaseModel):
     @abstractmethod
     def load_model(self):
         pass
-    
+
     @abstractmethod
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str]]]], **kwargs):
         pass
-    
+
     @abstractmethod
     def get_settings(self):
         pass
-    
+
     @abstractmethod
     def load_template(self, messages: list[dict[str, str | list[dict[str, str]]]]):
         pass
@@ -123,16 +130,20 @@ class BaseModelHandler(BaseModel):
 
         if self.arch in self.check_is_causal_lm:
             for msg in history[:-1]:
-                if msg["role"] == "system": messages.append({"role": "system", "content": msg["content"]})
-                if msg["role"] == "user": messages.append({"role": "user", "content": msg["content"]})
-                if msg["role"] == "assistant": messages.append({"role": "assistant", "content": msg["content"]})
-        
+                if msg["role"] == "system":
+                    messages.append({"role": "system", "content": msg["content"]})
+                if msg["role"] == "user":
+                    messages.append({"role": "user", "content": msg["content"]})
+                if msg["role"] == "assistant":
+                    messages.append({"role": "assistant", "content": msg["content"]})
+
         else:
             for msg in history[:-1]:
                 if msg["role"] == "system":
                     system_message = []
                     for content in msg["content"]:
-                        if content["type"] == "text": system_message.append({"type": "text", "text": content["text"]})
+                        if content["type"] == "text":
+                            system_message.append({"type": "text", "text": content["text"]})
                     messages.append({"role": "system", "content": system_message})
                 if msg["role"] == "user":
                     user_history = []
@@ -141,7 +152,7 @@ class BaseModelHandler(BaseModel):
                             user_history.append({"type": "text", "text": content["text"]})
                         elif content["type"] == "image":
                             user_history.append({"type": "image"})
-                            self.images.append(self.decode_base64(content['url']))
+                            self.images.append(self.decode_base64(content["url"]))
                         elif content["type"] == "video":
                             user_history.append({"type": "video"})
                         elif content["type"] == "audio":
@@ -150,16 +161,18 @@ class BaseModelHandler(BaseModel):
                 if msg["role"] == "assistant":
                     ai_history = []
                     for content in msg["content"]:
-                        if content["type"] == "text": ai_history.append({"type": "text", "text": content["text"]})
+                        if content["type"] == "text":
+                            ai_history.append({"type": "text", "text": content["text"]})
                     messages.append({"role": "assistant", "content": ai_history})
 
         user_message = history[-1]
 
-        if self.arch in self.check_is_causal_lm: user_inputs = user_message["content"]
+        if self.arch in self.check_is_causal_lm:
+            user_inputs = user_message["content"]
         else:
             user_inputs = []
             for content in user_message["content"]:
-                if content["type"] == "text": 
+                if content["type"] == "text":
                     user_inputs.append({"type": "text", "text": content["text"]})
                 elif content["type"] == "image":
                     user_inputs.append({"type": "image"})
@@ -173,16 +186,9 @@ class BaseModelHandler(BaseModel):
         Generate a chat title based on the first message.
         Uses the API to summarize the message into a short title.
         """
-        prompt = (
-            "Create a very short chat title (max 5-7 words) that summarizes the following message. "
-            "Reply with ONLY the title, no quotes or extra text:\n\n"
-            f"{first_message}"
-        )
+        prompt = f"Create a very short chat title (max 5-7 words) that summarizes the following message. Reply with ONLY the title, no quotes or extra text:\n\n{first_message}"
 
-        history = [
-            {"role": "system", "content": "You are a helpful assistant that creates concise chat titles."},
-            {"role": "user", "content": prompt}
-        ]
+        history = [{"role": "system", "content": "You are a helpful assistant that creates concise chat titles."}, {"role": "user", "content": prompt}]
 
         # Temporarily reduce max_tokens for title generation
         original_max_tokens = self.max_tokens
@@ -191,13 +197,14 @@ class BaseModelHandler(BaseModel):
         try:
             title = self.generate_answer(history)
             # Clean up the title
-            title = title.strip().strip('"\'').strip()
+            title = title.strip().strip("\"'").strip()
             # Truncate if too long
             if len(title) > 50:
                 title = title[:47] + "..."
             return title
         except Exception as e:
             from .logging import logger
+
             logger.warning(f"Failed to generate chat title via API: {e}")
             # Fallback to truncated first message
             if isinstance(first_message, str):
@@ -209,72 +216,76 @@ class BaseModelHandler(BaseModel):
     def decode_base64(self, b64_str: str):
         if "," in b64_str:
             b64_str = b64_str.split(",")[1]
-        
+
         image_bytes = base64.b64decode(b64_str)
         return Image.open(BytesIO(image_bytes)).convert("RGB")
+
 
 class BaseCausalModelHandler(BaseModelHandler):
     def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = True, **kwargs):
         super().__init__(model_id, lora_model_id, use_langchain, None, **kwargs)
-        
+
     @abstractmethod
     def load_model(self):
         pass
-    
+
     @abstractmethod
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str | Image.Image | Any]] | Any]], **kwargs):
         pass
-    
+
     @abstractmethod
     def get_settings(self):
         pass
-    
+
     @abstractmethod
     def load_template(self, messages):
         pass
+
 
 class BaseVisionModelHandler(BaseModelHandler):
     def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):
         super().__init__(model_id, lora_model_id, use_langchain, image_input, **kwargs)
-        
+
     @abstractmethod
     def load_model(self):
         pass
-    
+
     @abstractmethod
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str | Image.Image | Any]] | Any]], **kwargs):
         pass
-    
+
     @abstractmethod
     def get_settings(self):
         pass
-    
+
     @abstractmethod
     def load_template(self, messages):
         pass
+
 
 class BaseOmniModelHandler(BaseModelHandler):
     def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, audio_input: str | List[str] | Any | None = None, **kwargs):
         super().__init__(model_id, lora_model_id, use_langchain, image_input, audio_input, **kwargs)
-        
+
     @abstractmethod
     def load_model(self):
         pass
-    
+
     @abstractmethod
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str | Image.Image | Any]] | Any]], **kwargs):
         pass
-    
+
     @abstractmethod
     def get_settings(self):
         pass
-    
+
     @abstractmethod
     def load_template(self, messages):
         pass
 
+
 class BaseAPIClientWrapper(BaseModel):
-    def __init__(self, selected_model: str, api_key: str | None = None , use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, audio_input: str | List[str] | Any | None = None, **kwargs):
+    def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, audio_input: str | List[str] | Any | None = None, **kwargs):
         super().__init__(use_langchain, image_input, audio_input, **kwargs)
         self.model = selected_model
         self.api_key = api_key
@@ -292,16 +303,9 @@ class BaseAPIClientWrapper(BaseModel):
         Generate a chat title based on the first message.
         Uses the API to summarize the message into a short title.
         """
-        prompt = (
-            "Create a very short chat title (max 5-7 words) that summarizes the following message. "
-            "Reply with ONLY the title, no quotes or extra text:\n\n"
-            f"{first_message}"
-        )
+        prompt = f"Create a very short chat title (max 5-7 words) that summarizes the following message. Reply with ONLY the title, no quotes or extra text:\n\n{first_message}"
 
-        history = [
-            {"role": "system", "content": "You are a helpful assistant that creates concise chat titles."},
-            {"role": "user", "content": prompt}
-        ]
+        history = [{"role": "system", "content": "You are a helpful assistant that creates concise chat titles."}, {"role": "user", "content": prompt}]
 
         # Temporarily reduce max_tokens for title generation
         original_max_tokens = self.max_tokens
@@ -310,13 +314,14 @@ class BaseAPIClientWrapper(BaseModel):
         try:
             title = self.generate_answer(history)
             # Clean up the title
-            title = title.strip().strip('"\'').strip()
+            title = title.strip().strip("\"'").strip()
             # Truncate if too long
             if len(title) > 50:
                 title = title[:47] + "..."
             return title
         except Exception as e:
             from .logging import logger
+
             logger.warning(f"Failed to generate chat title via API: {e}")
             # Fallback to truncated first message
             if isinstance(first_message, str):
@@ -328,14 +333,14 @@ class BaseAPIClientWrapper(BaseModel):
     @staticmethod
     def encode_image(image_path: str):
         with open(image_path, "rb") as image_file:
-            if image_path.rsplit('.')[-1] == "jpg" or "jpeg":
-                data_mime="image/jpeg"
-            elif image_path.rsplit('.')[-1] == "png":
-                data_mime="image/png"
-            elif image_path.rsplit('.')[-1] == "webp":
-                data_mime="image/webp"
-            elif image_path.rsplit('.')[-1] == "gif":
-                data_mime="image/gif"
+            if image_path.rsplit(".")[-1] == "jpg" or "jpeg":
+                data_mime = "image/jpeg"
+            elif image_path.rsplit(".")[-1] == "png":
+                data_mime = "image/png"
+            elif image_path.rsplit(".")[-1] == "webp":
+                data_mime = "image/webp"
+            elif image_path.rsplit(".")[-1] == "gif":
+                data_mime = "image/gif"
 
             image = base64.b64encode(image_file.read()).decode("utf-8")
 

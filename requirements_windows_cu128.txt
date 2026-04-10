@@ -1,9 +1,9 @@
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
+
 torch==2.10.0+cu128
 torchvision
 torchaudio
-
 triton-windows
-llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.33-cu128-Basic-win-20260315/llama_cpp_python-0.3.33+cu128.basic-cp310-cp310-win_amd64.whl ; python_version=='3.10'
-llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.33-cu128-Basic-win-20260315/llama_cpp_python-0.3.33+cu128.basic-cp311-cp311-win_amd64.whl ; python_version=='3.11'
-llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.33-cu128-Basic-win-20260315/llama_cpp_python-0.3.33+cu128.basic-cp312-cp312-win_amd64.whl ; python_version=='3.12'
-llama-cpp-python @ https://github.com/JamePeng/llama-cpp-python/releases/download/v0.3.33-cu128-Basic-win-20260315/llama_cpp_python-0.3.33+cu128.basic-cp313-cp313-win_amd64.whl ; python_version=='3.13'
+
+
+llama-cpp-python

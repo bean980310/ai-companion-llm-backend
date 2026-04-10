@@ -18,6 +18,8 @@ Usage:
     ])
 """
 
+from __future__ import annotations
+
 import os
 import random
 import warnings
@@ -28,22 +30,21 @@ import numpy as np
 try:
     from vllm import LLM, SamplingParams
     from vllm.distributed import destroy_model_parallel
+
     VLLM_AVAILABLE = True
 except ImportError:
     VLLM_AVAILABLE = False
-    warnings.warn(
-        "vllm is not installed. Install it with `pip install vllm` to use offline inference.",
-        UserWarning
-    )
+    warnings.warn("vllm is not installed. Install it with `pip install vllm` to use offline inference.", UserWarning)
 
 try:
     from langchain_integrator import LangchainIntegrator
+
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
 except ImportError:
     warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 
-from .logging import logger
+from ai_companion_core import logger
 from .base_handlers import BaseCausalModelHandler
 
 
@@ -67,17 +68,9 @@ class VllmCausalModelHandler(BaseCausalModelHandler):
         **kwargs: Additional parameters (temperature, top_p, top_k, etc.)
     """
 
-    def __init__(
-        self,
-        model_id: str,
-        lora_model_id: str | None = None,
-        use_langchain: bool = False,
-        **kwargs
-    ):
+    def __init__(self, model_id: str, lora_model_id: str | None = None, use_langchain: bool = False, **kwargs):
         if not VLLM_AVAILABLE:
-            raise ImportError(
-                "vllm is not installed. Install it with `pip install vllm`"
-            )
+            raise ImportError("vllm is not installed. Install it with `pip install vllm`")
 
         # vLLM-specific configuration
         self.tensor_parallel_size = int(kwargs.pop("tensor_parallel_size", 1))
@@ -179,6 +172,7 @@ class VllmCausalModelHandler(BaseCausalModelHandler):
         lora_request = None
         if self.local_lora_model_path and os.path.exists(self.local_lora_model_path):
             from vllm.lora.request import LoRARequest
+
             lora_request = LoRARequest(
                 lora_name="adapter",
                 lora_int_id=1,
@@ -273,10 +267,12 @@ class VllmCausalModelHandler(BaseCausalModelHandler):
 
             # Force garbage collection
             import gc
+
             gc.collect()
 
             try:
                 import torch
+
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                     torch.cuda.synchronize()
@@ -299,6 +295,7 @@ class VllmCausalModelHandler(BaseCausalModelHandler):
         np.random.seed(seed)
         try:
             import torch
+
             torch.manual_seed(seed)
             if torch.cuda.is_available():
                 torch.cuda.manual_seed_all(seed)

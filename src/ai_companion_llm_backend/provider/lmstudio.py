@@ -1,4 +1,6 @@
 # WIP: src/pipelines/llm/api/lmstudio.py
+from __future__ import annotations
+
 import os
 import warnings
 from typing import Any, BinaryIO
@@ -13,12 +15,15 @@ SERVER_API_HOST = "localhost:1234"
 lms.get_default_client(SERVER_API_HOST)
 
 from ..base_handlers import BaseAPIClientWrapper
+
 try:
     from langchain_integrator import LangchainIntegrator
+
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
 except ImportError:
     warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
+
 
 class LMStudioIntegrator(BaseAPIClientWrapper):
     def __init__(self, selected_model: str = None, api_key: str = "not-needed", use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, **kwargs):
@@ -70,13 +75,13 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
         if self.enable_langchain:
             return self.langchain_integrator.generate_answer(history)
         else:
-            self.system_prompt = next((msg['content'] for msg in history[:1] if msg['role'] == 'system'), None)
+            self.system_prompt = next((msg["content"] for msg in history[:1] if msg["role"] == "system"), None)
 
             # messages = [{"role": msg['role'], "content": msg['content']} for msg in history[(1 if self.system_prompt else 0):-1]]
-            messages = [{"role": msg['role'], "content": msg['content']} for msg in history[bool(self.system_prompt):-1]]
+            messages = [{"role": msg["role"], "content": msg["content"]} for msg in history[bool(self.system_prompt) : -1]]
 
             self.chat = lms.Chat(self.system_prompt) if self.system_prompt else lms.Chat()
-            
+
             for msg in messages:
                 if msg["role"] == "user":
                     if msg["content"]["type"] == "text":
@@ -87,7 +92,7 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
                 elif msg["role"] == "assistant":
                     if msg["content"]["type"] == "text":
                         self.chat.add_assistant_response(msg["content"]["text"])
-                    
+
             self.user_message = history[-1]["content"]["text"]
 
             if self.image_input is not None:
@@ -97,32 +102,38 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
                         self.image_handle.append(lms.prepare_image(image))
                 else:
                     self.image_handle = lms.prepare_image(self.image_input)
-                    
+
                 self.chat.add_user_message(self.user_message, images=[self.image_handle])
             else:
                 self.chat.add_user_message(self.user_message)
 
             if self.enable_streaming is True:
-                streamer = self.llm.respond_stream(self.chat, config={
-                    "temperature": self.temperature,
-                    "topPSampling": self.top_p,
-                    "topKSampling": self.top_k,
-                    "repeatPenalty": self.repetition_penalty,
-                    "maxTokens": self.max_tokens,
-                })
+                streamer = self.llm.respond_stream(
+                    self.chat,
+                    config={
+                        "temperature": self.temperature,
+                        "topPSampling": self.top_p,
+                        "topKSampling": self.top_k,
+                        "repeatPenalty": self.repetition_penalty,
+                        "maxTokens": self.max_tokens,
+                    },
+                )
                 answer = ""
                 for fragment in streamer:
                     print(fragment.content, end="", flush=True)
-                    answer+=(fragment.content)
+                    answer += fragment.content
 
             else:
-                response = self.llm.respond(self.chat, config={
-                    "temperature": self.temperature,
-                    "topPSampling": self.top_p,
-                    "topKSampling": self.top_k,
-                    "repeatPenalty": self.repetition_penalty,
-                    "maxTokens": self.max_tokens,
-                })
+                response = self.llm.respond(
+                    self.chat,
+                    config={
+                        "temperature": self.temperature,
+                        "topPSampling": self.top_p,
+                        "topKSampling": self.top_k,
+                        "repeatPenalty": self.repetition_penalty,
+                        "maxTokens": self.max_tokens,
+                    },
+                )
                 answer = response.content
 
             return answer.strip()

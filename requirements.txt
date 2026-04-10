@@ -33,3 +33,4 @@ gguf
 gptqmodel>5.0.0
 openai-harmony
 llama-cpp-python
+ai-companion-core

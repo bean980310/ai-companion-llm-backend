@@ -18,6 +18,8 @@ Usage:
     ])
 """
 
+from __future__ import annotations
+
 import os
 import warnings
 from typing import Any, BinaryIO
@@ -26,11 +28,12 @@ from typing_extensions import Buffer
 from PIL import Image, ImageFile
 from openai import OpenAI
 
-from ..logging import logger
+from ai_companion_core import logger
 from ..base_handlers import BaseAPIClientWrapper
 
 try:
     from langchain_integrator import LangchainIntegrator
+
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
 except ImportError:
     warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
@@ -53,14 +56,7 @@ class vLLMClientWrapper(BaseAPIClientWrapper):
         **kwargs: Additional parameters (max_tokens, temperature, top_p, etc.)
     """
 
-    def __init__(
-        self,
-        selected_model: str,
-        api_key: str = "not-needed",
-        use_langchain: bool = False,
-        image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None,
-        **kwargs
-    ):
+    def __init__(self, selected_model: str, api_key: str = "not-needed", use_langchain: bool = False, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, **kwargs):
         super().__init__(selected_model, api_key, use_langchain, image_input, **kwargs)
 
         self.server_url = str(kwargs.get("server_url", "http://localhost:8000"))
@@ -104,11 +100,7 @@ class vLLMClientWrapper(BaseAPIClientWrapper):
             )
             logger.info(f"vLLM OpenAI client initialized: {self.server_url}")
 
-    def generate_answer(
-        self,
-        history: list[dict[str, str | list[dict[str, str]] | Any]],
-        **kwargs
-    ) -> str:
+    def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs) -> str:
         """
         Generate a response based on the conversation history.
 
@@ -137,11 +129,7 @@ class vLLMClientWrapper(BaseAPIClientWrapper):
         else:
             return self._generate_non_streaming(messages, extra_body)
 
-    def _generate_non_streaming(
-        self,
-        messages: list[dict],
-        extra_body: dict
-    ) -> str:
+    def _generate_non_streaming(self, messages: list[dict], extra_body: dict) -> str:
         """Generate response without streaming."""
         try:
             response = self.client.chat.completions.create(
@@ -161,11 +149,7 @@ class vLLMClientWrapper(BaseAPIClientWrapper):
             logger.error(f"vLLM generation error: {e}")
             raise
 
-    def _generate_streaming(
-        self,
-        messages: list[dict],
-        extra_body: dict
-    ) -> str:
+    def _generate_streaming(self, messages: list[dict], extra_body: dict) -> str:
         """Generate response with streaming."""
         try:
             stream = self.client.chat.completions.create(
@@ -203,6 +187,7 @@ class vLLMClientWrapper(BaseAPIClientWrapper):
         try:
             # vLLM provides a /health endpoint
             import requests
+
             response = requests.get(f"{self.server_url}/health", timeout=5)
             return response.status_code == 200
         except Exception as e:
