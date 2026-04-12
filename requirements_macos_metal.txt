@@ -1,9 +1,4 @@
---extra-index-url https://abetlen.github.io/llama-cpp-python/whl/metal
-
 mlx
 mlx-lm
 mlx-vlm
 mlx_embeddings
-
-
-llama-cpp-python
