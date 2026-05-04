@@ -7,7 +7,13 @@ from typing import Any
 
 from PIL import Image, ImageFile
 
-import xai_sdk
+try:
+    import xai_sdk
+except ImportError:
+    warnings.warn("xai_sdk is not Installed")
+except Exception as e:
+    warnings.warn(f"xai_sdk error: {e}")
+
 
 from ai_companion_core import logger
 
