@@ -12,6 +12,7 @@ import random
 from typing_extensions import Buffer
 import torch.nn
 from PIL import Image, ImageFile
+from mem0 import Memory
 
 try:
     import mlx.nn
@@ -77,6 +78,7 @@ class BaseModel(ABC):
         self.check_is_multimodal_lm = list(MODEL_FOR_MULTIMODAL_LM_MAPPING_NAMES.values())
         self.check_is_image_text_to_text = list(MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES.values())
         self.check_is_any_to_any = list(set(self.check_is_multimodal_lm) - set(self.check_is_image_text_to_text))
+        self.memory = Memory()
 
         if self.seed == -1:
             self.seed = random.randint(0, 4294967295)
@@ -104,6 +106,7 @@ class BaseModelHandler(BaseModel):
         self.processor: AutoProcessor | ProcessorMixin | Any | None = None
         self.tokenizer: AutoTokenizer | PythonBackend | TokenizersBackend | PreTrainedTokenizerBase | TokenizerWrapper | type[SPMStreamingDetokenizer] | partial[SPMStreamingDetokenizer] | type[BPEStreamingDetokenizer] | type[NaiveStreamingDetokenizer] | Any | None = None
         self.model: torch.nn.Module | mlx.nn.Module | PreTrainedModel | GenerationMixin | AutoModelForCausalLM | AutoModelForImageTextToText | AutoModel | PeftModel | Llama | Any | None = None
+        self.memory = Memory()
 
     @abstractmethod
     def load_model(self):

@@ -16,7 +16,8 @@ try:
     import mlx.core as mx
 except ImportError:
     if platform.system() == "Darwin" and platform.machine() == "arm64":
-        warnings.warn("mlx is not installed. Please install it to use this library.", UserWarning)
+        warnings.warn(
+            "mlx is not installed. Please install it to use this library.", UserWarning)
     else:
         pass
 
@@ -29,7 +30,8 @@ try:
     from mlx_lm.utils import load_config as mlx_lm_load_config
 except ImportError:
     if platform.system() == "Darwin" and platform.machine() == "arm64":
-        warnings.warn("mlx_lm is not installed. Please install it to use MLX Chat.", UserWarning)
+        warnings.warn(
+            "mlx_lm is not installed. Please install it to use MLX Chat.", UserWarning)
     else:
         pass
 
@@ -41,7 +43,8 @@ try:
     from mlx_vlm.prompt_utils import apply_chat_template
 except ImportError:
     if platform.system() == "Darwin" and platform.machine() == "arm64":
-        warnings.warn("mlx_vlm is not installed. Please install it to use MLX Multimodal Chat.", UserWarning)
+        warnings.warn(
+            "mlx_vlm is not installed. Please install it to use MLX Multimodal Chat.", UserWarning)
     else:
         pass
 
@@ -50,7 +53,8 @@ try:
 
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
 except ImportError:
-    warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
+    warnings.warn(
+        "langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 
 from ai_companion_core import logger
@@ -59,7 +63,8 @@ from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseM
 
 class MlxUnifiedModelHandler(BaseModelHandler):
     def __init__(self, model_id: str, lora_model_id: str | None = None, model_type="mlx", use_langchain: bool = True, image_input: str | List[str] | Image.Image | ImageFile.ImageFile | Any | None = None, audio_input: str | List[str] | Any | None = None, video_input: str | List[str] | Any | None = None, **kwargs):
-        super().__init__(model_id, lora_model_id, use_langchain, image_input, audio_input, video_input, **kwargs)
+        super().__init__(model_id, lora_model_id, use_langchain,
+                         image_input, audio_input, video_input, **kwargs)
 
         self.arch = None
 
@@ -83,13 +88,15 @@ class MlxUnifiedModelHandler(BaseModelHandler):
         self.load_model()
 
     def load_model(self):
-        self.arch = AutoConfig.from_pretrained(self.local_model_path).architectures[0]
+        self.arch = AutoConfig.from_pretrained(
+            self.local_model_path).architectures[0]
 
         if self.enable_langchain:
             if self.arch in self.check_is_multimodal_lm:
                 print("langchain_mlx is currently not supported vision features.")
                 self.enable_langchain = False
-                self.model, self.processor = mlx_vlm_load(self.local_model_path, adapter_path=self.local_lora_model_path, lazy=True)
+                self.model, self.processor = mlx_vlm_load(
+                    self.local_model_path, adapter_path=self.local_lora_model_path, lazy=True)
                 self.config = mlx_vlm_load_config(self.local_model_path)
             else:
                 self.langchain_integrator = LangchainIntegrator(
@@ -106,9 +113,11 @@ class MlxUnifiedModelHandler(BaseModelHandler):
                 )
         else:
             if self.arch in self.check_is_causal_lm:
-                self.model, self.tokenizer = mlx_lm_load(self.local_model_path, adapter_path=self.local_lora_model_path, tokenizer_config=self.tokenizer_config)
+                self.model, self.tokenizer = mlx_lm_load(
+                    self.local_model_path, adapter_path=self.local_lora_model_path, tokenizer_config=self.tokenizer_config)
             elif self.arch in self.check_is_multimodal_lm:
-                self.model, self.processor = mlx_vlm_load(self.local_model_path, adapter_path=self.local_lora_model_path, lazy=True)
+                self.model, self.processor = mlx_vlm_load(
+                    self.local_model_path, adapter_path=self.local_lora_model_path, lazy=True)
             else:
                 logger.error(f"ERROR: Unsupported Task!")
                 return
@@ -128,15 +137,20 @@ class MlxUnifiedModelHandler(BaseModelHandler):
         if "</think>" in response:
             _, response = response.split("</think>", 1)
 
+        self.memory.add()
+
         return response.strip()
 
     def get_settings(self):
-        self.sampler = make_sampler(temp=self.temperature, top_p=self.top_p, top_k=self.top_k)
-        self.logits_processors = make_logits_processors(repetition_penalty=self.repetition_penalty)
+        self.sampler = make_sampler(
+            temp=self.temperature, top_p=self.top_p, top_k=self.top_k)
+        self.logits_processors = make_logits_processors(
+            repetition_penalty=self.repetition_penalty)
 
     def load_template(self, messages):
         if self.arch in self.check_is_causal_lm:
-            kwargs = dict(conversation=messages, tokenize=False, add_generation_prompt=True, enable_thinking=self.enable_thinking)
+            kwargs = dict(conversation=messages, tokenize=False,
+                          add_generation_prompt=True, enable_thinking=self.enable_thinking)
             if self.use_tools:
                 kwargs["tools"] = self.tools
             template = self.tokenizer.apply_chat_template(**kwargs)
@@ -159,9 +173,11 @@ class MlxUnifiedModelHandler(BaseModelHandler):
 
     def _generate_answer(self, prompt):
         if self.arch in self.check_is_causal_lm:
-            response = mlx_lm_generate(self.model, self.tokenizer, prompt=prompt, verbose=True, sampler=self.sampler, logits_processors=self.logits_processors, max_tokens=self.max_tokens, max_kv_size=2048)
+            response = mlx_lm_generate(self.model, self.tokenizer, prompt=prompt, verbose=True, sampler=self.sampler,
+                                       logits_processors=self.logits_processors, max_tokens=self.max_tokens, max_kv_size=2048)
         elif self.arch in self.check_is_multimodal_lm:
-            response = mlx_vlm_generate(self.model, self.processor, prompt=prompt, image=self.image_input, audio=self.audio_input, video=self.video_input, verbose=True, sampler=self.sampler, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens, max_kv_size=2048)
+            response = mlx_vlm_generate(self.model, self.processor, prompt=prompt, image=self.image_input, audio=self.audio_input, video=self.video_input,
+                                        verbose=True, sampler=self.sampler, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens, max_kv_size=2048)
         return response
 
     def _generate_streaming(self, prompt) -> Generator[str, None, None]:
@@ -232,7 +248,8 @@ class MlxCausalModelHandler(BaseCausalModelHandler):
                 provider=("self-provided", "mlx"), model_name=self.local_model_path, lora_model_name=self.local_lora_model_path, max_tokens=self.max_tokens, temperature=self.temperature, top_k=self.top_k, top_p=self.top_p, repetition_penalty=self.repetition_penalty, verbose=True, tokenizer_config=self.tokenizer_config
             )
         else:
-            self.model, self.tokenizer = mlx_lm_load(self.local_model_path, adapter_path=self.local_lora_model_path, tokenizer_config=self.tokenizer_config)
+            self.model, self.tokenizer = mlx_lm_load(
+                self.local_model_path, adapter_path=self.local_lora_model_path, tokenizer_config=self.tokenizer_config)
 
     def generate_answer(self, history, **kwargs):
         if self.enable_langchain:
@@ -240,7 +257,8 @@ class MlxCausalModelHandler(BaseCausalModelHandler):
         else:
             text = self.load_template(history)
             self.get_settings()
-            response = mlx_lm_generate(self.model, self.tokenizer, prompt=text, verbose=True, sampler=self.sampler, logits_processors=self.logits_processors, max_tokens=self.max_tokens, max_kv_size=2048)
+            response = mlx_lm_generate(self.model, self.tokenizer, prompt=text, verbose=True, sampler=self.sampler,
+                                       logits_processors=self.logits_processors, max_tokens=self.max_tokens, max_kv_size=2048)
 
             if "</think>" in response:
                 _, response = response.split("</think>", 1)
@@ -248,8 +266,10 @@ class MlxCausalModelHandler(BaseCausalModelHandler):
             return response.strip()
 
     def get_settings(self):
-        self.sampler = make_sampler(temp=self.temperature, top_p=self.top_p, top_k=self.top_k)
-        self.logits_processors = make_logits_processors(repetition_penalty=self.repetition_penalty)
+        self.sampler = make_sampler(
+            temp=self.temperature, top_p=self.top_p, top_k=self.top_k)
+        self.logits_processors = make_logits_processors(
+            repetition_penalty=self.repetition_penalty)
 
     def load_template(self, messages):
         if self.use_tools:
@@ -315,9 +335,11 @@ class MlxVisionModelHandler(BaseVisionModelHandler):
 
     def load_model(self):
         if self.enable_langchain and not self.image_input:
-            self.langchain_integrator = LangchainIntegrator(provider="mlx", model_name=self.local_model_path, lora_model_name=self.local_lora_model_path, max_tokens=self.max_tokens, temperature=self.temperature, top_k=self.top_k, top_p=self.top_p, repetition_penalty=self.repetition_penalty, verbose=True)
+            self.langchain_integrator = LangchainIntegrator(provider="mlx", model_name=self.local_model_path, lora_model_name=self.local_lora_model_path,
+                                                            max_tokens=self.max_tokens, temperature=self.temperature, top_k=self.top_k, top_p=self.top_p, repetition_penalty=self.repetition_penalty, verbose=True)
         else:
-            self.model, self.processor = mlx_vlm_load(self.local_model_path, adapter_path=self.local_lora_model_path, lazy=True)
+            self.model, self.processor = mlx_vlm_load(
+                self.local_model_path, adapter_path=self.local_lora_model_path, lazy=True)
             self.config = mlx_vlm_load_config(self.local_model_path)
 
     def generate_answer(self, history, **kwargs):
@@ -326,7 +348,8 @@ class MlxVisionModelHandler(BaseVisionModelHandler):
         else:
             formatted_prompt = self.load_template(history)
             self.get_settings()
-            response = mlx_vlm_generate(self.model, self.processor, formatted_prompt, image=self.image_input, verbose=True, sampler=self.sampler, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens, max_kv_size=2048)
+            response = mlx_vlm_generate(self.model, self.processor, formatted_prompt, image=self.image_input, verbose=True,
+                                        sampler=self.sampler, repetition_penalty=self.repetition_penalty, max_tokens=self.max_tokens, max_kv_size=2048)
 
             if "</think>" in response.text:
                 _, response.text = response.text.split("</think>", 1)
@@ -334,8 +357,10 @@ class MlxVisionModelHandler(BaseVisionModelHandler):
             return response.text.strip()
 
     def get_settings(self):
-        self.sampler = make_sampler(temp=self.temperature, top_p=self.top_p, top_k=self.top_k)
-        self.logits_processors = make_logits_processors(repetition_penalty=self.repetition_penalty)
+        self.sampler = make_sampler(
+            temp=self.temperature, top_p=self.top_p, top_k=self.top_k)
+        self.logits_processors = make_logits_processors(
+            repetition_penalty=self.repetition_penalty)
         # return temperature, top_k, top_p, repetition_penalty
 
     def load_template(self, messages):
