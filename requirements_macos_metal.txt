@@ -2,3 +2,5 @@ mlx
 mlx-lm
 mlx-vlm
 mlx_embeddings
+
+transformers==5.12.1
