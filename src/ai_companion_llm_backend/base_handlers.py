@@ -13,6 +13,7 @@ from typing_extensions import Buffer
 import torch.nn
 from PIL import Image, ImageFile
 from mem0 import Memory
+from pydantic import SecretStr
 
 try:
     import mlx.nn
@@ -99,7 +100,7 @@ class BaseModelHandler(BaseModel):
         self.lora_model_id: str | None = lora_model_id
         self.config: AutoConfig | PretrainedConfig | Any | None = None
         self.generation_config: GenerationConfig | Any | None = None
-        self.config_json = kwargs.get("config_json", {})
+        self.config_json = dict(kwargs.get("config_json", {}))
         self.local_model_path: str = os.path.join("./models/llm", model_id)
         self.local_lora_model_path: str | None = os.path.join("./models/llm/loras", lora_model_id) if lora_model_id else None
 
@@ -286,7 +287,7 @@ class BaseOmniModelHandler(BaseModelHandler):
 
 
 class BaseAPIClientWrapper(BaseModel):
-    def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, audio_input: str | List[str] | Any | None = None, **kwargs):
+    def __init__(self, selected_model: str, api_key: str | SecretStr | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | BinaryIO | Buffer | os.PathLike[str] | Any | None = None, audio_input: str | List[str] | Any | None = None, **kwargs):
         super().__init__(use_langchain, image_input, audio_input, **kwargs)
         self.model = selected_model
         self.api_key = api_key

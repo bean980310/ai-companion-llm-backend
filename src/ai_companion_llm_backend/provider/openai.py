@@ -11,6 +11,8 @@ from openai import OpenAI
 from openai.types.responses.response import Response
 from openai.types.responses.response_stream_event import ResponseStreamEvent
 
+from pydantic import SecretStr
+
 from ai_companion_core import logger
 from ..base_handlers import BaseAPIClientWrapper
 
@@ -19,16 +21,26 @@ try:
 
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
 except ImportError:
-    warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
+    warnings.warn(
+        "langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ",
+        UserWarning,
+    )
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 
 
 class OpenAIClientWrapper(BaseAPIClientWrapper):
-    def __init__(self, selected_model: str, api_key: str | None = None, use_langchain: bool = True, image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None, **kwargs):
+    def __init__(
+        self,
+        selected_model: str,
+        api_key: str | SecretStr | None = None,
+        use_langchain: bool = True,
+        image_input: str | Image.Image | ImageFile.ImageFile | Any | None = None,
+        **kwargs,
+    ):
         super().__init__(selected_model, api_key, use_langchain, image_input, **kwargs)
 
         # self.client = OpenAI(api_key=self.api_key)
-        self.system_prompt: str = None
+        self.system_prompt: str | Any | None = None
 
         if self.use_langchain and LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE:
             self.enable_langchain = True
@@ -37,7 +49,17 @@ class OpenAIClientWrapper(BaseAPIClientWrapper):
     def load_model(self):
         if self.enable_langchain:
             self.langchain_integrator = LangchainIntegrator(
-                provider="openai", model_name=self.model, api_key=self.api_key, max_tokens=self.max_tokens, temperature=self.temperature, top_p=self.top_p, top_k=self.top_k, repetition_penalty=self.repetition_penalty, verbose=True, enable_thinking=self.enable_thinking, image_input=self.image_input
+                provider="openai",
+                model_name=self.model,
+                api_key=self.api_key,
+                max_tokens=self.max_tokens,
+                temperature=self.temperature,
+                top_p=self.top_p,
+                top_k=self.top_k,
+                repetition_penalty=self.repetition_penalty,
+                verbose=True,
+                enable_thinking=self.enable_thinking,
+                image_input=self.image_input,
             )
         else:
             self.client = OpenAI(api_key=self.api_key)
@@ -65,11 +87,15 @@ class OpenAIClientWrapper(BaseAPIClientWrapper):
 
                 new_message = {
                     "role": "user",
-                    "content": [{"type": "input_text", "text": history[-1]["content"]["text"]}, {"type": "input_image", "file_id": image.id}],
+                    "content": [
+                        {"type": "input_text", "text": history[-1]["content"]["text"]},
+                        {"type": "input_image", "file_id": image.id},
+                    ],
                 }
-                messages.append(new_message)
             else:
-                messages.append({"role": "user", "content": history[-1]["content"]})
+                new_message = {"role": "user", "content": history[-1]["content"]}
+
+            messages.append(new_message)
 
             logger.info(f"[*] OpenAI API 요청: {messages}")
 
