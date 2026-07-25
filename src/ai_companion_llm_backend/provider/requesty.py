@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import traceback
-import requests
 import warnings
 
-import openai
 
 from huggingface_hub import InferenceClient
 

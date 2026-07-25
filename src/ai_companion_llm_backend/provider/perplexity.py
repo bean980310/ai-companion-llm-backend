@@ -1,10 +1,8 @@
-import traceback
 import warnings
 from typing import Any
 
 from PIL import Image, ImageFile
 
-import perplexity
 from perplexity import Perplexity
 from perplexity._streaming import Stream
 from perplexity.types.stream_chunk import StreamChunk

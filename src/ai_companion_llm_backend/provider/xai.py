@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
 import warnings
-import traceback
 from typing import Any
 
 from PIL import Image, ImageFile

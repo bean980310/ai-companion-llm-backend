@@ -1,10 +1,8 @@
-import traceback
 import warnings
 from typing import Any
 
 from PIL import Image, ImageFile
 
-import anthropic
 from anthropic import Anthropic
 
 from ai_companion_core import logger

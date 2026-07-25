@@ -1,11 +1,9 @@
 import random
-import traceback
-import os
 import time
 import deprecated
 import platform
 import warnings
-from typing import Any, Dict, List, Optional, Union, Iterator, Generator
+from typing import Any, List, Generator
 
 import numpy as np
 from PIL import Image, ImageFile
@@ -58,7 +56,7 @@ except ImportError:
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 
 from ai_companion_core import logger
-from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler, BaseOmniModelHandler
+from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler
 
 
 class MlxUnifiedModelHandler(BaseModelHandler):
@@ -119,7 +117,7 @@ class MlxUnifiedModelHandler(BaseModelHandler):
                 self.model, self.processor = mlx_vlm_load(
                     self.local_model_path, adapter_path=self.local_lora_model_path, lazy=True)
             else:
-                logger.error(f"ERROR: Unsupported Task!")
+                logger.error("ERROR: Unsupported Task!")
                 return
 
     def generate_answer(self, history, **kwargs):

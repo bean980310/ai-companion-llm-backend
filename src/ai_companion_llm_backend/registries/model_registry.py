@@ -27,7 +27,7 @@ class ModelRegistry:
         
         try:
             specs = cls._loader(provider_id)
-        except Exception as e:
+        except Exception:
             cls._loaded_providers.add(provider_id)
             return
 

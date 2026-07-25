@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Iterable, Optional, List
+from typing import Dict, List
 from ..interfaces.providers import ProviderSpec, ProviderCapabilities, PROVIDER_ID as ProviderId
 
 

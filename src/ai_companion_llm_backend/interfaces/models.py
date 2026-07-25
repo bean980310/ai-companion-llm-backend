@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional
 
 @dataclass(frozen=True)
 class ModelCapabilities:

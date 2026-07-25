@@ -4,36 +4,23 @@ import time
 import warnings
 import deprecated
 import threading
-import random
-import base64
 from typing import Any, Generator, List
 
-from io import BytesIO
 from PIL import Image, ImageFile
-import numpy as np
 import torch
 from peft import PeftModel
 from transformers import (
     AutoTokenizer,
     AutoProcessor,
-    AutoModel,
     AutoModelForImageTextToText,
     AutoModelForCausalLM,
     GenerationConfig,
-    Llama4ForConditionalGeneration,
     TextStreamer,
     TextIteratorStreamer,
-    Qwen3ForCausalLM,
-    Qwen3MoeForCausalLM,
-    Mistral3ForConditionalGeneration,
-    MistralForCausalLM,
-    Llama4Processor,
-    LlamaTokenizer,
     set_seed,
     BatchEncoding,
     AutoModelForMultimodalLM,
     AutoConfig,
-    Qwen3_5ForConditionalGeneration,
 )
 
 from ai_companion_core import logger
@@ -45,7 +32,7 @@ try:
 except ImportError:
     warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
-from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseOmniModelHandler, BaseModelHandler
+from .base_handlers import BaseCausalModelHandler, BaseVisionModelHandler, BaseModelHandler
 
 
 class TransformersUnifiedModelHandler(BaseModelHandler):
@@ -103,7 +90,7 @@ class TransformersUnifiedModelHandler(BaseModelHandler):
                 self.tokenizer = AutoTokenizer.from_pretrained(self.local_model_path, trust_remote_code=True)
                 self.model = AutoModelForMultimodalLM.from_pretrained(self.local_model_path, trust_remote_code=True, device_map="auto")
         else:
-            logger.error(f"ERROR: Unsupported Task!")
+            logger.error("ERROR: Unsupported Task!")
             return
 
         if self.local_lora_model_path and os.path.exists(self.local_lora_model_path):
