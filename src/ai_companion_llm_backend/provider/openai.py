@@ -1,5 +1,5 @@
 import warnings
-from typing import Any
+from typing import Any, Optional
 
 from PIL import Image, ImageFile
 
@@ -35,7 +35,7 @@ class OpenAIClientWrapper(BaseAPIClientWrapper):
         super().__init__(selected_model, api_key, use_langchain, image_input, **kwargs)
 
         # self.client = OpenAI(api_key=self.api_key)
-        self.system_prompt: str | Any | None = None
+        self.system_prompt: Optional[str | Any] = None
 
         if self.use_langchain and LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE:
             self.enable_langchain = True

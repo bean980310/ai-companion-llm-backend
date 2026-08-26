@@ -1,5 +1,5 @@
 import warnings
-from typing import Any
+from typing import Any, Optional
 
 from PIL import Image, ImageFile
 
@@ -54,8 +54,17 @@ class PerplexityClientWrapper(BaseAPIClientWrapper):
             logger.info(f"[*] Perplexity API 요청: {messages}")
 
             if self.enable_streaming:
-                stream: Stream[StreamChunk] = self.client.chat.completions.create(
-                    messages=messages, model=self.model, top_p=self.top_p, top_k=self.top_k, max_tokens=self.max_tokens, frequency_penalty=self.repetition_penalty, presence_penalty=self.repetition_penalty, temperature=self.temperature, reasoning_effort="medium" if self.enable_thinking else None, stream=True
+                stream = self.client.responses.create(
+                    input=messages,
+                    model=self.model,
+                    top_p=self.top_p,
+                    top_k=self.top_k,
+                    max_output_tokens=self.max_tokens,
+                    frequency_penalty=self.repetition_penalty,
+                    presence_penalty=self.repetition_penalty,
+                    temperature=self.temperature,
+                    reasoning_effort="medium" if self.enable_thinking else None,
+                    stream=True,
                 )
                 answer = ""
                 search_results = []
@@ -81,7 +90,7 @@ class PerplexityClientWrapper(BaseAPIClientWrapper):
                 print(answer)
 
             else:
-                completion: StreamChunk = self.client.chat.completions.create(
+                completion = self.client.chat.completions.create(
                     messages=messages, model=self.model, top_p=self.top_p, top_k=self.top_k, max_tokens=self.max_tokens, frequency_penalty=self.repetition_penalty, presence_penalty=self.repetition_penalty, temperature=self.temperature, reasoning_effort="medium" if self.enable_thinking else None, stream=False
                 )
                 answer = completion.choices[0].message.content

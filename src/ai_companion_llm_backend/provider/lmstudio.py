@@ -3,7 +3,7 @@
 from ..base_handlers import BaseAPIClientWrapper
 import os
 import warnings
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, Optional
 
 from typing_extensions import Buffer
 from PIL import Image, ImageFile
@@ -20,8 +20,7 @@ try:
 
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = True
 except ImportError:
-    warnings.warn(
-        "langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
+    warnings.warn("langchain_integrator is required when use_langchain=True. Install it or set use_langchain=False. ", UserWarning)
     LANGCHAIN_INTEGRATOR_IS_INSTALLED_AND_AVAILABLE = False
 
 
@@ -38,16 +37,15 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
 
         # self.local_lora_model_path = self.lora_model_id
 
-        self.system_prompt = None
-        self.user_message = None
-        self.chat_history = None
+        self.system_prompt: Optional[str] = None
+        self.user_message: Optional[str] = None
+        self.chat_history: Optional[list[dict[str, Any]]] = None
 
         self.max_tokens = self.max_length if self.max_length > 0 else 4096
 
         self.llm: lms.LLM | None = None
         self.chat: lms.Chat | None = None
-        self.server_url = str(kwargs.get(
-            "server_url", "http://localhost:1234"))
+        self.server_url = str(kwargs.get("server_url", "http://localhost:1234"))
         self.client = lms.Client(self.server_url)
         self.image_handle: lms.FileHandle | Any | None = None
 
@@ -70,22 +68,18 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
                 verbose=True,
             )
         else:
-            self.llm = self.client.llm.model(
-                self.model, config={"seed": self.seed})
+            self.llm = self.client.llm.model(self.model, config={"seed": self.seed})
 
-    def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
+    def generate_answer(self, history: list[dict[str, str | dict[str, str] | list[dict[str, str]] | Any]], **kwargs):
         if self.enable_langchain:
             return self.langchain_integrator.generate_answer(history)
         else:
-            self.system_prompt = next(
-                (msg["content"] for msg in history[:1] if msg["role"] == "system"), None)
+            self.system_prompt = next((msg["content"] for msg in history[:1] if msg["role"] == "system"), None)
 
             # messages = [{"role": msg['role'], "content": msg['content']} for msg in history[(1 if self.system_prompt else 0):-1]]
-            messages = [{"role": msg["role"], "content": msg["content"]}
-                        for msg in history[bool(self.system_prompt): -1]]
+            messages = [{"role": msg["role"], "content": msg["content"]} for msg in history[bool(self.system_prompt) : -1]]
 
-            self.chat = lms.Chat(
-                self.system_prompt) if self.system_prompt else lms.Chat()
+            self.chat = lms.Chat(self.system_prompt) if self.system_prompt else lms.Chat()
 
             for msg in messages:
                 if msg["role"] == "user":
@@ -96,8 +90,7 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
                     self.chat.add_user_message(user_content)
                 elif msg["role"] == "assistant":
                     if msg["content"]["type"] == "text":
-                        self.chat.add_assistant_response(
-                            msg["content"]["text"])
+                        self.chat.add_assistant_response(msg["content"]["text"])
 
             self.user_message = history[-1]["content"]["text"]
 
@@ -109,8 +102,7 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
                 else:
                     self.image_handle = lms.prepare_image(self.image_input)
 
-                self.chat.add_user_message(
-                    self.user_message, images=[self.image_handle])
+                self.chat.add_user_message(self.user_message, images=[self.image_handle])
             else:
                 self.chat.add_user_message(self.user_message)
 
@@ -143,7 +135,6 @@ class LMStudioIntegrator(BaseAPIClientWrapper):
                 )
                 answer = response.content
 
-            self.memory.add(messages=[{"role": "user", "content": self.user_message}, {
-                            "role": "assistant", "content": answer}], user_id="ai_companion_user")
+            self.memory.add(messages=[{"role": "user", "content": self.user_message}, {"role": "assistant", "content": answer}], user_id="ai_companion_user")
 
             return answer.strip()

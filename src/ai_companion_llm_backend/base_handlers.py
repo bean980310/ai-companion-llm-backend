@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Any, BinaryIO, Union, List
+from typing import Any, BinaryIO, Union, List, Optional, override
 from pathlib import Path
 from io import BytesIO
 import os
@@ -45,11 +45,11 @@ FileInput = Union[str, "os.PathLike[str]", list[str], Path, "os.PathLike[Path]",
 
 
 class BaseModel(ABC):
-    def __init__(self, use_langchain: bool = True, image_input: str | List[str] | Image.Image | List[Image.Image] | ImageFile.ImageFile | List[ImageFile.ImageFile] | Any | None = None, audio_input: str | List[str] | Any | None = None, video_input: str | List[str] | Any | None = None, **kwargs):
+    def __init__(self, use_langchain: bool = True, image_input: Optional[str | List[str] | Image.Image | List[Image.Image] | ImageFile.ImageFile | List[ImageFile.ImageFile] | Any] = None, audio_input: Optional[str | List[str] | Any] = None, video_input: Optional[str | List[str] | Any] = None, **kwargs):
         self.use_langchain = use_langchain
-        self.images: str | list[str] | Image.Image | list[Image.Image] | None = None
-        self.audios: str | list[str] | None = None
-        self.videos: str | list[str] | None = None
+        self.images: Optional[str | list[str] | Image.Image | list[Image.Image]] = None
+        self.audios: Optional[str | list[str]] = None
+        self.videos: Optional[str | list[str]] = None
         self.image_input = image_input
         self.audio_input = audio_input
         self.video_input = video_input
@@ -89,7 +89,7 @@ class BaseModel(ABC):
         pass
 
     @abstractmethod
-    def generate_answer(self, history: list[dict[str, str | list[dict[str, str]]]], **kwargs):
+    def generate_answer(self, history: list[dict[str, str | list[dict[str, str | Image.Image | Any]] | Any]], **kwargs):
         pass
 
 
@@ -105,7 +105,7 @@ class BaseModelHandler(BaseModel):
         self.local_lora_model_path: str | None = os.path.join("./models/llm/loras", lora_model_id) if lora_model_id else None
 
         self.processor: AutoProcessor | ProcessorMixin | Any | None = None
-        self.tokenizer: AutoTokenizer | PythonBackend | TokenizersBackend | PreTrainedTokenizerBase | TokenizerWrapper | type[SPMStreamingDetokenizer] | partial[SPMStreamingDetokenizer] | type[BPEStreamingDetokenizer] | type[NaiveStreamingDetokenizer] | Any | None = None
+        self.tokenizer: AutoTokenizer | PythonBackend | TokenizersBackend | PreTrainedTokenizerBase | TokenizerWrapper | type[SPMStreamingDetokenizer | BPEStreamingDetokenizer | NaiveStreamingDetokenizer] | partial[SPMStreamingDetokenizer] | Any | None = None
         self.model: torch.nn.Module | mlx.nn.Module | PreTrainedModel | GenerationMixin | AutoModelForCausalLM | AutoModelForImageTextToText | AutoModel | PeftModel | Llama | Any | None = None
         self.memory = Memory()
 
@@ -114,7 +114,7 @@ class BaseModelHandler(BaseModel):
         pass
 
     @abstractmethod
-    def generate_answer(self, history: list[dict[str, str | list[dict[str, str]]]], **kwargs):
+    def generate_answer(self, history: list[dict[str, str | list[dict[str, str | Image.Image | Any]] | Any]], **kwargs):
         pass
 
     @abstractmethod
@@ -205,7 +205,7 @@ class BaseModelHandler(BaseModel):
                 title = title[:47] + "..."
             return title
         except Exception as e:
-            from .logging import logger
+            from ai_companion_core.logging import logger
 
             logger.warning(f"Failed to generate chat title via API: {e}")
             # Fallback to truncated first message
@@ -240,7 +240,7 @@ class BaseCausalModelHandler(BaseModelHandler):
         pass
 
     @abstractmethod
-    def load_template(self, messages):
+    def load_template(self, messages: list[dict[str, str | list[dict[str, str]]]]):
         pass
 
 
@@ -261,7 +261,7 @@ class BaseVisionModelHandler(BaseModelHandler):
         pass
 
     @abstractmethod
-    def load_template(self, messages):
+    def load_template(self, messages: list[dict[str, str | list[dict[str, str]]]]):
         pass
 
 
@@ -282,7 +282,7 @@ class BaseOmniModelHandler(BaseModelHandler):
         pass
 
     @abstractmethod
-    def load_template(self, messages):
+    def load_template(self, messages: list[dict[str, str | list[dict[str, str]]]]):
         pass
 
 
@@ -297,7 +297,7 @@ class BaseAPIClientWrapper(BaseModel):
         pass
 
     @abstractmethod
-    def generate_answer(self, history: list[dict[str, str | list[dict[str, str]]]], **kwargs):
+    def generate_answer(self, history: list[dict[str, str | list[dict[str, str | Image.Image | Any]] | Any]], **kwargs):
         pass
 
     def generate_chat_title(self, first_message: str, image_input=None) -> str:
@@ -322,7 +322,7 @@ class BaseAPIClientWrapper(BaseModel):
                 title = title[:47] + "..."
             return title
         except Exception as e:
-            from .logging import logger
+            from ai_companion_core.logging import logger
 
             logger.warning(f"Failed to generate chat title via API: {e}")
             # Fallback to truncated first message
