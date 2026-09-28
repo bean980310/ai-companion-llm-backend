@@ -15,6 +15,9 @@ from PIL import Image, ImageFile
 from mem0 import Memory
 from pydantic import SecretStr
 
+from .interfaces.tools import ToolExecutor, ToolSpec
+from .tool_calling import DEFAULT_MAX_TOOL_ITERATIONS, run_tool_loop
+
 try:
     import mlx.nn
 except ImportError:
@@ -55,7 +58,17 @@ class BaseModel(ABC):
         self.video_input = video_input
         self.enable_streaming = bool(kwargs.get("enable_streaming", False))
         self.use_tools = bool(kwargs.get("use_tools", False))
-        self.tools = list[str](kwargs.get("tools", []))
+        # Raw tool schemas (legacy apply_chat_template path). May be a list of
+        # OpenAI-style dicts or backend ToolSpec objects.
+        self.tools: list = list(kwargs.get("tools", []))
+
+        # Provider-agnostic tool-calling loop settings.
+        # ``tool_specs`` are normalized ToolSpec objects; ``tool_executor`` is a
+        # callable ``(name, arguments) -> ToolResult | str`` invoked for each
+        # requested tool call. ``max_tool_iterations`` caps the loop.
+        self.tool_specs: list[ToolSpec] = list(kwargs.get("tool_specs", []))
+        self.tool_executor: ToolExecutor | None = kwargs.get("tool_executor", None)
+        self.max_tool_iterations = int(kwargs.get("max_tool_iterations", DEFAULT_MAX_TOOL_ITERATIONS))
 
         self.max_tokens = int(kwargs.get("max_tokens", 4096))
         self.max_length = int(kwargs.get("max_length", -1))
@@ -299,6 +312,129 @@ class BaseAPIClientWrapper(BaseModel):
     @abstractmethod
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str | Image.Image | Any]] | Any]], **kwargs):
         pass
+
+    # ------------------------------------------------------------------
+    # Provider-agnostic tool calling
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _normalize_tool_specs(tools: list) -> list[ToolSpec]:
+        """Coerce a mixed list of ToolSpec/dict/object schemas into ToolSpec."""
+        specs: list[ToolSpec] = []
+        for tool in tools:
+            if isinstance(tool, ToolSpec):
+                specs.append(tool)
+                continue
+            if isinstance(tool, dict):
+                # Either an OpenAI function schema or a flat tool dict.
+                if tool.get("type") == "function" and "function" in tool:
+                    fn = tool["function"]
+                    specs.append(
+                        ToolSpec(
+                            name=fn.get("name", ""),
+                            description=fn.get("description", ""),
+                            parameters=fn.get("parameters", {"type": "object", "properties": {}}),
+                        )
+                    )
+                else:
+                    specs.append(
+                        ToolSpec(
+                            name=tool.get("name", ""),
+                            description=tool.get("description", ""),
+                            parameters=tool.get("parameters") or tool.get("input_schema") or {"type": "object", "properties": {}},
+                            server=tool.get("server_name") or tool.get("server"),
+                        )
+                    )
+                continue
+            # Duck-typed objects (e.g. MCPTool)
+            schema = getattr(tool, "input_schema", None) or getattr(tool, "parameters", None) or {"type": "object", "properties": {}}
+            if isinstance(schema, list):
+                schema = {"type": "object", "properties": {}}
+            specs.append(
+                ToolSpec(
+                    name=getattr(tool, "name", str(tool)),
+                    description=getattr(tool, "description", "") or "",
+                    parameters=schema,
+                    server=getattr(tool, "server_name", None),
+                )
+            )
+        return specs
+
+    def get_tool_specs(self) -> list[ToolSpec]:
+        """Resolved, normalized tool specs for this wrapper."""
+        if self.tool_specs:
+            return self.tool_specs
+        return self._normalize_tool_specs(self.tools)
+
+    def can_run_tools(self) -> bool:
+        """Whether a tool-calling loop can be executed."""
+        return bool(self.get_tool_specs()) and callable(self.tool_executor)
+
+    @staticmethod
+    def content_to_openai(content: Any) -> Any:
+        """Convert internal multimodal content into OpenAI chat content format."""
+        if isinstance(content, str):
+            return content
+        if not isinstance(content, list):
+            return str(content)
+        parts: list[dict[str, Any]] = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append({"type": "text", "text": item})
+            elif isinstance(item, dict):
+                if item.get("type") == "text" or "text" in item:
+                    parts.append({"type": "text", "text": item.get("text", "")})
+                elif item.get("type") == "image":
+                    url = item.get("url") or item.get("image_url")
+                    if url:
+                        parts.append({"type": "image_url", "image_url": {"url": url}})
+        if not parts:
+            return ""
+        if len(parts) == 1 and parts[0]["type"] == "text":
+            return parts[0]["text"]
+        return parts
+
+    def history_to_openai_messages(self, history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Build OpenAI chat messages from the internal history format."""
+        messages: list[dict[str, Any]] = []
+        for msg in history:
+            role = msg.get("role")
+            if role not in ("system", "user", "assistant"):
+                continue
+            messages.append({"role": role, "content": self.content_to_openai(msg.get("content", ""))})
+        return messages
+
+    def run_tool_calling(
+        self,
+        history: list[dict[str, Any]],
+        *,
+        extra_body: dict[str, Any] | None = None,
+        system_tool_hint: str | None = None,
+        max_tokens: int | None = None,
+        **completion_kwargs: Any,
+    ) -> str:
+        """
+        Execute the provider-agnostic tool-calling loop against
+        ``self.client.chat.completions`` (OpenAI-compatible endpoint).
+
+        Subclasses that use a non-OpenAI client should override this method.
+        """
+        if not self.can_run_tools():
+            raise RuntimeError("Tool calling is not configured (missing tool_specs or tool_executor)")
+
+        return run_tool_loop(
+            client=self.client,
+            model=self.model,
+            messages=self.history_to_openai_messages(history),
+            tool_specs=self.get_tool_specs(),
+            executor=self.tool_executor,
+            temperature=self.temperature,
+            max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
+            max_iterations=self.max_tool_iterations,
+            extra_body=extra_body,
+            system_tool_hint=system_tool_hint,
+            **completion_kwargs,
+        ).strip()
 
     def generate_chat_title(self, first_message: str, image_input=None) -> str:
         """

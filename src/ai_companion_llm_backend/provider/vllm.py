@@ -114,6 +114,10 @@ class vLLMClientWrapper(BaseAPIClientWrapper):
         if self.enable_langchain:
             return self.langchain_integrator.generate_answer(history)
 
+        # --- Tool calling path (OpenAI-compatible chat completions) ---
+        if self.can_run_tools():
+            return self.run_tool_calling(history, extra_body={"repetition_penalty": self.repetition_penalty, "top_k": self.top_k})
+
         # Prepare messages
         messages = [{"role": msg["role"], "content": msg["content"]} for msg in history]
 

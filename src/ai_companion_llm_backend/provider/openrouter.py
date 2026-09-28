@@ -37,18 +37,22 @@ class OpenRouterClientWrapper(BaseAPIClientWrapper):
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
         if self.enable_langchain:
             return self.langchain_integrator.generate_answer(history)
-        else:
-            messages = [{"role": msg["role"], "content": msg["content"]} for msg in history]
-            logger.info(f"[*] OpenRouter API 요청: {messages}")
 
-            # with self.client as client:
-            #     response = client.chat.send(
-            #         model=self.model,
-            #         messages=messages,
+        # --- Tool calling path (OpenAI-compatible chat completions) ---
+        if self.can_run_tools():
+            return self.run_tool_calling(history, extra_body={"top_k": self.top_k, "repetition_penalty": self.repetition_penalty})
 
-            #     )
+        messages = [{"role": msg["role"], "content": msg["content"]} for msg in history]
+        logger.info(f"[*] OpenRouter API 요청: {messages}")
 
-            chat_completion = self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=self.max_tokens, temperature=self.temperature, top_p=self.top_p, extra_body={"top_k": self.top_k, "repetition_penalty": self.repetition_penalty})
+        # with self.client as client:
+        #     response = client.chat.send(
+        #         model=self.model,
+        #         messages=messages,
 
-            answer = chat_completion.choices[0].message.content
-            return answer
+        #     )
+
+        chat_completion = self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=self.max_tokens, temperature=self.temperature, top_p=self.top_p, extra_body={"top_k": self.top_k, "repetition_penalty": self.repetition_penalty})
+
+        answer = chat_completion.choices[0].message.content
+        return answer

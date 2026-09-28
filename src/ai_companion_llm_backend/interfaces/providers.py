@@ -10,6 +10,9 @@ class ProviderCapabilities:
     embeddings: bool = False
     vision: bool = False
     tools: bool = False
+    # Whether tools are driven by the backend's OpenAI-compatible tool loop
+    # (as opposed to only being exposed through LangchainIntegrator).
+    tools_native: bool = False
     json_mode: bool = False
     streaming: bool = True
 

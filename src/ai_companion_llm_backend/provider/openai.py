@@ -68,6 +68,31 @@ class OpenAIClientWrapper(BaseAPIClientWrapper):
 
             self.system_prompt = next((msg["content"] for msg in history[:1] if msg["role"] == "system"), None)
 
+            # --- Tool calling path (OpenAI Responses API) ---
+            if self.can_run_tools():
+                from ..tool_calling import run_tool_loop_responses
+
+                # Feed the system prompt via `instructions`, others as input items.
+                tool_input = [{"role": msg["role"], "content": self.content_to_openai(msg["content"])} for msg in history if msg["role"] != "system"]
+                non_reasoning = "none" if "gpt-5.1" in self.model else "minimum"
+                answer = run_tool_loop_responses(
+                    client=self.client,
+                    model=self.model,
+                    input_items=tool_input,
+                    tool_specs=self.get_tool_specs(),
+                    executor=self.tool_executor,
+                    instructions=self.system_prompt,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    max_iterations=self.max_tool_iterations,
+                    reasoning={"effort": "medium"} if self.enable_thinking else {"effort": non_reasoning},
+                    extra_body={
+                        "frequency_penalty": self.repetition_penalty if self.enable_thinking is False else None,
+                        "presence_penalty": self.repetition_penalty if self.enable_thinking is False else None,
+                    },
+                )
+                return answer.strip()
+
             # if self.system_prompt is not None:
             #     messages = [{"role": msg['role'], "content": msg['content']} for msg in history[1:-1]]
             # else:

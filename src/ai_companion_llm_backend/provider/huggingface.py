@@ -42,27 +42,31 @@ class HuggingfaceInferenceClientWrapper(BaseAPIClientWrapper):
     def generate_answer(self, history: list[dict[str, str | list[dict[str, str]] | Any]], **kwargs):
         if self.enable_langchain:
             return self.langchain_integrator.generate_answer(history)
+
+        # --- Tool calling path (OpenAI-compatible chat completions) ---
+        if self.can_run_tools():
+            return self.run_tool_calling(history, extra_body={"top_k": self.top_k, "repetition_penalty": self.repetition_penalty})
+
+        # client = InferenceClient(
+        #     token=self.api_key,
+        #     provider=self.hf_provider,
+        # )
+
+        messages = [{"role": msg["role"], "content": msg["content"]} for msg in history]
+        logger.info(f"[*] Huggingface Inference API 요청: {messages}")
+
+        if self.enable_streaming is True:
+            chat_stream = self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=self.max_tokens, temperature=self.temperature, top_p=self.top_p, extra_body={"top_k": self.top_k, "repetition_penalty": self.repetition_penalty}, stream=True)
+
+            answer = ""
+
+            for chunk in chat_stream:
+                print(chunk.choices[0].delta.content)
+                answer.join(chunk.choices[0].delta.content)
+
         else:
-            # client = InferenceClient(
-            #     token=self.api_key,
-            #     provider=self.hf_provider,
-            # )
+            chat_completion = self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=self.max_tokens, temperature=self.temperature, top_p=self.top_p, extra_body={"top_k": self.top_k, "repetition_penalty": self.repetition_penalty}, stream=False)
 
-            messages = [{"role": msg["role"], "content": msg["content"]} for msg in history]
-            logger.info(f"[*] Huggingface Inference API 요청: {messages}")
+            answer = chat_completion.choices[0].message.content
 
-            if self.enable_streaming is True:
-                chat_stream = self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=self.max_tokens, temperature=self.temperature, top_p=self.top_p, extra_body={"top_k": self.top_k, "repetition_penalty": self.repetition_penalty}, stream=True)
-
-                answer = ""
-
-                for chunk in chat_stream:
-                    print(chunk.choices[0].delta.content)
-                    answer.join(chunk.choices[0].delta.content)
-
-            else:
-                chat_completion = self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=self.max_tokens, temperature=self.temperature, top_p=self.top_p, extra_body={"top_k": self.top_k, "repetition_penalty": self.repetition_penalty}, stream=False)
-
-                answer = chat_completion.choices[0].message.content
-
-            return answer.strip()
+        return answer.strip()
