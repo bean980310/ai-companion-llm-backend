@@ -1,3 +1,3 @@
 from typing import Literal
 
-PROVIDER_LIST = ["openai", "anthropic", "google-genai", "perplexity", "xai", 'mistralai', "openrouter", "hf-inference", "ollama", "lmstudio", "self-provided"]
+from ai_companion_gateway.interfaces import PROVIDER_LIST  # noqa: F401

@@ -34,3 +34,4 @@ gptqmodel>5.0.0
 openai-harmony
 mem0ai
 ai-companion-core
+ai-companion-gateway

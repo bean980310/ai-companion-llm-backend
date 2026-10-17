@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Callable
 from ..interfaces.models import ModelSpec, ModelCapabilities
-from ..interfaces.providers import PROVIDER_ID as ProviderId
+from ai_companion_gateway.interfaces.providers import PROVIDER_ID as ProviderId
 
 ModelLoader = Callable[[ProviderId], List[ModelSpec]]
 
